@@ -1,5 +1,6 @@
 import re
 import logging
+import uuid
 from datetime import datetime
 from dateutil import parser as date_parser
 from dateutil import tz
@@ -87,8 +88,13 @@ class TransactionParser:
         description = f"{remarks}" if remarks else ""
         description += f" [{parsed_data.get("merchant") or parsed_data.get("recipient") or "Unknown"}]"
 
+        # Generate UUID
+        # We use the final timestamp and the raw message to ensure uniqueness and determinism
+        transaction_id = str(uuid.uuid5(uuid.NAMESPACE_OID, f"{datetime.now()}|{full_message}"))
+
         # Construct result
         return {
+            "id": transaction_id,
             "timestamp": final_timestamp.isoformat(),
             "type": parsed_data["type"],
             "amount": parsed_data["amount"] * parsed_data["sign"],

@@ -28,7 +28,7 @@ def categorize_transaction(message: str) -> str:
     Return ONLY the category name. If you are unsure, return "Other".
     """
 
-    print(f"LLM categorization prompt: {prompt}")
+    logger.info(f"LLM categorization prompt: {prompt}")
 
     try:
         response = client.models.generate_content(
@@ -36,7 +36,7 @@ def categorize_transaction(message: str) -> str:
             contents=prompt
         )
         category = response.text.strip()
-        print(f"LLM categorization response: {category}")
+        logger.info(f"LLM categorization response: {category}")
 
 
         if category in DEFAULT_CATEGORIES:
