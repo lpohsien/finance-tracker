@@ -88,15 +88,10 @@ source $HOME/.cargo/env
 ### 3. Deploy Code
 ```bash
 # Clone repo
-git clone <your_repo_url> finance-tracker
+git clone https://github.com/lpohsien/finance-tracker.git finance-tracker
 cd finance-tracker
 
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-uv pip install .
+uv sync
 ```
 
 ### 4. Configure Environment
