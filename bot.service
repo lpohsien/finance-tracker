@@ -1,0 +1,15 @@
+[Unit]
+Description=Finance Tracker Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+User=erwinli
+WorkingDirectory=/home/erwinli/finance-tracker
+ExecStart=/usr/local/bin/python3 /home/erwinli/finance-tracker/src/main.py
+Restart=always
+RestartSec=10
+EnvironmentFile=/home/erwinli/finance-tracker/.env
+
+[Install]
+WantedBy=multi-user.target
