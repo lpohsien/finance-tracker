@@ -122,12 +122,12 @@ class TransactionParser:
         text_to_check = (description + " " + remarks).lower()
         
         keywords = {
-            "Food": ["dinner", "lunch", "breakfast", "cafe", "restaurant", "mcdonald", "kfc", "food"],
-            "Snacks": ["starbucks", "coffee", "bubble tea", "tea", "snack", "coffee", "tea"],
-            "Transport": ["grab", "gojek", "uber", "taxi", "train", "bus", "mrt", "transport"],
-            "Shopping": ["shopee", "lazada", "amazon", "uniqlo"],
-            "Groceries": ["grocery", "fairprice", "cold storage", "giant", "market"],
-            "Utilities": ["singtel", "starhub", "m1", "electricity", "water"],
+            "Food": ["food", "dinner", "lunch", "breakfast", "cafe", "food"],
+            "Snack": ["snack", "snacks","starbucks", "coffee", "bubble tea", "tea", "snack", "coffee", "tea"],
+            "Transport": ["transport", "grab", "gojek", "uber", "taxi", "train", "bus", "mrt"],
+            "Shopping": ["shopping", "shopee", "lazada", "amazon", "uniqlo"],
+            "Groceries": ["groceries", "grocery", "fairprice", "cold storage", "giant", "market"],
+            "Utilities": ["utilities", "singtel", "starhub", "m1", "electricity", "water"],
         }
 
         for cat, words in keywords.items():
