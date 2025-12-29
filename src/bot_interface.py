@@ -153,13 +153,29 @@ class FinanceBot:
         self.storage.delete_user_categories(user_id, categories)
         await update.message.reply_text(f"✅ Deleted categories: {', '.join(categories)}")
 
-    async def clear_category_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def reset_category_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = self._is_authorized(update)
         if not user_id:
             return
 
-        self.storage.clear_user_categories(user_id)
-        await update.message.reply_text("✅ All categories cleared.")
+        self.storage.reset_user_categories(user_id)
+        await update.message.reply_text("✅ Categories reset to default.")
+
+    async def view_category_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = self._is_authorized(update)
+        if not user_id:
+            return
+
+        categories = self.storage.get_user_categories(user_id)
+        if not categories:
+             await update.message.reply_text("No categories found.")
+             return
+
+        response = "📂 **Current Categories**\n"
+        for cat in categories:
+            response += f"- {cat}\n"
+        
+        await update.message.reply_text(response, parse_mode='Markdown')
 
     async def reset_budget_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = self._is_authorized(update)
@@ -352,7 +368,8 @@ class FinanceBot:
             view_budget - view all current budgets
             add_cat - /add_cat <cat1>, <cat2> add new categories
             delete_cat - /delete_cat <cat1>, <cat2> delete categories
-            clear_cat - remove all categories
+            reset_cat - reset categories to default
+            view_cat - view all current categories
             <message> - Send a bank transaction message to log it
         '''
         application.add_handler(CommandHandler("start", self.start))
@@ -366,7 +383,8 @@ class FinanceBot:
         application.add_handler(CommandHandler("view_budget", self.view_budget_command))
         application.add_handler(CommandHandler("add_cat", self.add_category_command))
         application.add_handler(CommandHandler("delete_cat", self.delete_category_command))
-        application.add_handler(CommandHandler("clear_cat", self.clear_category_command))
+        application.add_handler(CommandHandler("reset_cat", self.reset_category_command))
+        application.add_handler(CommandHandler("view_cat", self.view_category_command))
         application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), self.handle_message))
 
         logger.info("Bot is polling...")

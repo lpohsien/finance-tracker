@@ -47,7 +47,9 @@ DEFAULT_CATEGORIES = [
     "Health",
     "Education",
     "Subscription",
-    "Fixed Expense",
+    "Utilities",
+    "Tax",
+    "Insurance",
     "Income",
     "Other"
 ]

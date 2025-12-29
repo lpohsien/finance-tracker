@@ -103,9 +103,9 @@ class StorageManager:
         config["categories"] = list(current_categories)
         self.save_user_config(user_id, config)
 
-    def clear_user_categories(self, user_id: int):
+    def reset_user_categories(self, user_id: int):
         config = self.get_user_config(user_id)
-        config["categories"] = []
+        config["categories"] = DEFAULT_CATEGORIES.copy()
         self.save_user_config(user_id, config)
 
     def get_user_categories(self, user_id: int) -> List[str]:

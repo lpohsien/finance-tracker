@@ -125,8 +125,9 @@ class TransactionParser:
             "Food": ["dinner", "lunch", "breakfast", "cafe", "restaurant", "mcdonald", "kfc", "food"],
             "Snacks": ["starbucks", "coffee", "bubble tea", "tea", "snack", "coffee", "tea"],
             "Transport": ["grab", "gojek", "uber", "taxi", "train", "bus", "mrt", "transport"],
-            "Shopping": ["shopee", "lazada", "amazon", "supermarket", "mart", "uniqlo"],
-            "Utilities": ["singtel", "starhub", "m1", "electricity", "water", "bill"],
+            "Shopping": ["shopee", "lazada", "amazon", "uniqlo"],
+            "Groceries": ["grocery", "fairprice", "cold storage", "giant", "market"],
+            "Utilities": ["singtel", "starhub", "m1", "electricity", "water"],
         }
 
         for cat, words in keywords.items():
