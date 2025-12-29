@@ -2,9 +2,9 @@ import logging
 import csv
 import tempfile
 import os
-from telegram import Update
-from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
-from src.config import TELEGRAM_BOT_TOKEN, ALLOWED_USER_IDS, START_KEY
+from telegram import Update, BotCommand, BotCommandScopeDefault, BotCommandScopeChat, BotCommandScopeChatMember
+from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters, Application
+from src.config import DEFAULT_CATEGORIES, TELEGRAM_BOT_TOKEN, ALLOWED_USER_IDS, START_KEY
 from src.parser import TransactionParser
 from src.storage import StorageManager, FIELDNAMES
 from src.analytics import AnalyticsEngine
@@ -22,12 +22,11 @@ class FinanceBot:
         
         # Check if user is already authorized
         if user_id in ALLOWED_USER_IDS:
+             # existing authorized user
              self.storage.initialize_user_config(user_id)
              await update.message.reply_text("Finance Tracker Bot Started. Send me your transaction messages!")
-             return
-
-        # Check for start key
-        if START_KEY and context.args and context.args[0] == START_KEY:
+        elif START_KEY and context.args and context.args[0] == START_KEY:
+            # Check for start key
             from src.utils import add_allowed_user
             if add_allowed_user(user_id):
                 self.storage.initialize_user_config(user_id)
@@ -36,7 +35,14 @@ class FinanceBot:
             else:
                 await update.message.reply_text("You are already authorized.")
         else:
+            # Unauthorized access
+            logger.warning(f"Unauthorized access attempt from user ID: {user_id}")
             await update.message.reply_text("⛔ Unauthorized access.")
+            return
+        
+        # Only refresh commands for authorized users
+        await context.bot.delete_my_commands(scope=BotCommandScopeChat(user_id))
+        await context.bot.set_my_commands(self.commands, scope=BotCommandScopeChat(user_id))
 
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = self._is_authorized(update)
@@ -91,7 +97,7 @@ class FinanceBot:
             return
 
         if not context.args or len(context.args) != 2:
-            await update.message.reply_text("❌ Usage: /set_budget <category>/'threshold' <amount>")
+            await update.message.reply_text("❌ Usage: /setbudget <category>/'threshold' <amount>")
             return
         
         category = str(context.args[0]).capitalize()
@@ -150,9 +156,19 @@ class FinanceBot:
             await update.message.reply_text("❌ No valid categories provided.")
             return
 
-        self.storage.delete_user_categories(user_id, categories)
-        await update.message.reply_text(f"✅ Deleted categories: {', '.join(categories)}")
+        categories_to_delete = []
+        for category in categories:
+            if category in DEFAULT_CATEGORIES:
+                await update.message.reply_text(f"❌ Cannot delete default category '{category}'.")
+            else:
+                categories_to_delete.append(category)
+                
 
+        self.storage.delete_user_categories(user_id, categories_to_delete)
+        if not categories_to_delete:
+            await update.message.reply_text("❌ No categories were deleted.")
+        else:
+            await update.message.reply_text(f"✅ Deleted categories: {', '.join(categories_to_delete)}")
     async def reset_category_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = self._is_authorized(update)
         if not user_id:
@@ -204,31 +220,7 @@ class FinanceBot:
             
         await update.message.reply_text(response, parse_mode='Markdown')
 
-    async def total_stats_commands(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        user_id = self._is_authorized(update)
-        if not user_id:
-            return
-
-        transactions = self.storage.get_transactions(user_id=user_id)
-        analytics = AnalyticsEngine(transactions)
-        
-        totals = analytics.get_total_income_expense()
-        breakdown = analytics.get_category_breakdown()
-        
-        response = (
-            f"📊 **All Time Stats**\n"
-            f"Total Income: SGD {totals['income']:.2f}\n"
-            f"Total Expense: SGD {totals['expense']:.2f}\n"
-            f"Total Transactions: {len(transactions)}\n\n"
-            f"📂 **Category Breakdown**\n"
-        )
-        
-        for cat, amount in breakdown.items():
-            response += f"- {cat}: SGD {amount:.2f}\n"
-            
-        await update.message.reply_text(response, parse_mode='Markdown')
-
-    async def month_stats_commands(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def stats_commands(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = self._is_authorized(update)
         if not user_id:
             return
@@ -246,28 +238,41 @@ class FinanceBot:
             year = now.year
             month = now.month
             year_month_str = now.strftime("%B %Y")
+        elif len(context.args) == 1 and context.args[0].lower() == 'all':
+            year = None
+            month = None
+            year_month_str = "All Time"
         else:
-            await update.message.reply_text("❌ Invalid command format. Use /month <year> <month> or /month for current month.")
+            await update.message.reply_text(
+                """
+                ❌ Invalid command format. Use /month <year> <month> or 
+                /month for current month or /month all for all time.
+                """
+            )
             return
 
         transactions = self.storage.get_transactions(user_id=user_id)
         analytics = AnalyticsEngine(transactions)
-        month_txs = analytics.filter_transactions_by_month(year, month)
-        
-        month_analytics = AnalyticsEngine(month_txs)
-        totals = month_analytics.get_total_income_expense()
-        breakdown = month_analytics.get_category_breakdown()
+        if year is not None and month is not None:
+            transactions = analytics.filter_transactions_by_month(year, month)
+            analytics = AnalyticsEngine(transactions)
+
+        totals = analytics.get_total_income_expense()
         
         response = (
             f"📅 **{year_month_str} Stats**\n"
             f"Total Income: SGD {totals['income']:.2f}\n"
             f"Total Expense: SGD {totals['expense']:.2f}\n"
-            f"Total Transactions: {len(month_txs)}\n\n"
+            f"Total Disbursed Expense: SGD {totals['disbursed_expense']:.2f}\n"
+            f"Total Net: SGD {totals['income'] + totals['expense']:.2f}\n"
+            f"Total Transactions: {len(transactions)}\n\n"
             f"📂 **Category Breakdown**\n"
         )
         
-        for cat, amount in breakdown.items():
-            response += f"- {cat}: SGD {amount:.2f}\n"
+        breakdown = list(analytics.get_category_breakdown().items())
+        breakdown.sort(key=lambda x: x[1])
+        for cat, amount in breakdown:
+            response += f"- {cat}: SGD {amount:.2f} ({abs(amount)/abs(totals['expense']):.2%})\n"
             
         await update.message.reply_text(response, parse_mode='Markdown')
 
@@ -341,6 +346,41 @@ class FinanceBot:
         finally:
             os.unlink(temp_path)
 
+    async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        help_text = """
+🤖 *Finance Tracker Bot Manual*
+
+*Basics*
+/start - Initialize/Authorize
+/help - Show this manual
+
+*Statistics*
+/stats - View statistics for current month
+/stats [year] [month] - View monthly stats
+/stats all - View all-time stats
+/export - Export current month to CSV
+/export [year] [month] - Export to CSV
+
+*Budgeting*
+/viewbudget - View current budgets
+/setbudget <category> <amount> - Set budget for category
+/setbudget threshold <amount> - Set big ticket alert threshold
+/resetbudget - Reset budgets to default
+
+*Categories*
+/viewcat - View categories
+/addcat <cat1>, <cat2> - Add categories
+/deletecat <cat1>, <cat2> - Delete categories
+/resetcat - Reset categories to default
+
+*Transactions*
+Simply forward or paste your bank transaction message.
+/delete <id> - Delete a transaction
+/clear - Delete ALL transactions
+"""
+        await update.message.reply_text(help_text, parse_mode='Markdown')
+
+
     def _is_authorized(self, update: Update) -> int:
         user_id = update.effective_user.id
         if user_id not in ALLOWED_USER_IDS:
@@ -358,33 +398,47 @@ class FinanceBot:
         '''
         Available Commands:
             start - /start <key> initialize the bot and authorize user
-            stats - View all-time financial statistics
-            month - /month <year> <month> get the monthly expenses stats, defaults to current
-            export - /month <year> <month> exports monthly transactions as csv, defaults to current
+            help - /help show user manual
+            stats - /stats all/<year> <month> get all/the monthly expenses stats, defaults to current
+            export - /export <year> <month> exports monthly transactions as csv, defaults to current
             delete - /delete <id> permanently removes a transaction by ID
             clear - Permanently delete all transactions
-            set_budget - /set_budget <category> <amount> set budget for a category
-            reset_budget - reset all budgets to default values
-            view_budget - view all current budgets
-            add_cat - /add_cat <cat1>, <cat2> add new categories
-            delete_cat - /delete_cat <cat1>, <cat2> delete categories
-            reset_cat - reset categories to default
-            view_cat - view all current categories
+            setbudget - /setbudget <category> <amount> set budget for a category
+            resetbudget - reset all budgets to default values
+            viewbudget - view all current budgets
+            addcat - /addcat <cat1>, <cat2> add new categories
+            deletecat - /deletecat <cat1>, <cat2> delete categories
+            resetcat - /resetcat categories to default
+            viewcat - /viewcat all current categories
             <message> - Send a bank transaction message to log it
         '''
+        self.commands = [
+            BotCommand("start", "Initialize or Refresh bot"),
+            BotCommand("help", "Show manual"),
+            BotCommand("stats", "View statistics"),
+            BotCommand("export", "Export CSV"),
+            BotCommand("viewbudget", "View budgets"),
+            BotCommand("setbudget", "Set budget"),
+            BotCommand("viewcat", "View categories"),
+            BotCommand("addcat", "Add categories"),
+            BotCommand("deletecat", "Delete categories"),
+            BotCommand("resetcat", "Reset categories"),
+            BotCommand("delete", "Delete a transaction"),
+            BotCommand("clear", "Delete all transactions"),
+        ]
         application.add_handler(CommandHandler("start", self.start))
-        application.add_handler(CommandHandler("stats", self.total_stats_commands))
-        application.add_handler(CommandHandler("month", self.month_stats_commands))
+        application.add_handler(CommandHandler("help", self.help_command))
+        application.add_handler(CommandHandler("stats", self.stats_commands))
         application.add_handler(CommandHandler("delete", self.delete_transaction_command))
         application.add_handler(CommandHandler("clear", self.delete_all_command))
         application.add_handler(CommandHandler("export", self.export_command))
-        application.add_handler(CommandHandler("set_budget", self.set_budget_command))
-        application.add_handler(CommandHandler("reset_budget", self.reset_budget_command))
-        application.add_handler(CommandHandler("view_budget", self.view_budget_command))
-        application.add_handler(CommandHandler("add_cat", self.add_category_command))
-        application.add_handler(CommandHandler("delete_cat", self.delete_category_command))
-        application.add_handler(CommandHandler("reset_cat", self.reset_category_command))
-        application.add_handler(CommandHandler("view_cat", self.view_category_command))
+        application.add_handler(CommandHandler("setbudget", self.set_budget_command))
+        application.add_handler(CommandHandler("resetbudget", self.reset_budget_command))
+        application.add_handler(CommandHandler("viewbudget", self.view_budget_command))
+        application.add_handler(CommandHandler("addcat", self.add_category_command))
+        application.add_handler(CommandHandler("deletecat", self.delete_category_command))
+        application.add_handler(CommandHandler("resetcat", self.reset_category_command))
+        application.add_handler(CommandHandler("viewcat", self.view_category_command))
         application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), self.handle_message))
 
         logger.info("Bot is polling...")

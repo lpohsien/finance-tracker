@@ -120,15 +120,17 @@ class TransactionParser:
         # 1. Keyword based (Simple)
         description = parsed_data.get("merchant") or parsed_data.get("recipient") or ""
         text_to_check = (description + " " + remarks).lower()
+
+        keywords = { cat: [cat.lower()] for cat in categories_list }
+        if "disbursement" in text_to_check:
+            return "Disbursement"
         
-        keywords = {
-            "Food": ["food", "dinner", "lunch", "breakfast", "cafe", "food"],
-            "Snack": ["snack", "snacks","starbucks", "coffee", "bubble tea", "tea", "snack", "coffee", "tea"],
-            "Transport": ["transport", "grab", "gojek", "uber", "taxi", "train", "bus", "mrt"],
-            "Shopping": ["shopping", "shopee", "lazada", "amazon", "uniqlo"],
-            "Groceries": ["groceries", "grocery", "fairprice", "cold storage", "giant", "market"],
-            "Utilities": ["utilities", "singtel", "starhub", "m1", "electricity", "water"],
-        }
+        keywords["Food"].extend(["dinner", "lunch", "breakfast", "cafe"])
+        keywords["Snack"].extend(["snacks","starbucks", "coffee", "bubble tea", "tea"])
+        keywords["Transport"].extend([ "grab", "gojek", "uber", "taxi", "train", "bus", "mrt"])
+        keywords["Shopping"].extend(["shopee", "lazada", "amazon", "uniqlo"])
+        keywords["Groceries"].extend(["grocery", "fairprice", "cold storage", "giant", "market"])
+        keywords["Utilities"].extend(["singtel", "starhub", "m1", "electricity", "water"])
 
         for cat, words in keywords.items():
             if categories_list and cat not in categories_list:

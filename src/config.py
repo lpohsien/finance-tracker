@@ -51,5 +51,6 @@ DEFAULT_CATEGORIES = [
     "Tax",
     "Insurance",
     "Income",
+    "Disbursement",
     "Other"
 ]

@@ -8,15 +8,20 @@ class AnalyticsEngine:
         self.transactions = transactions
 
     def get_total_income_expense(self) -> Dict[str, float]:
-        income = sum(t["amount"] for t in self.transactions if t["amount"] > 0)
-        expense = sum(t["amount"] for t in self.transactions if t["amount"] < 0)
-        return {"income": income, "expense": expense}
+        # Disbursements are paid on behalf, count as negative expense
+        income = sum(t["amount"] for t in self.transactions if t["amount"] > 0 and t["category"] != "Disbursement")
+        expense = sum(t["amount"] for t in self.transactions if t["amount"] < 0 and t["category"] != "Disbursement")
+        disbursements = sum(t["amount"] for t in self.transactions if t["category"] == "Disbursement")
+        disbursed_expense = expense + disbursements
+        return {"income": income, "expense": expense, "disbursed_expense": disbursed_expense}
 
     def get_category_breakdown(self) -> Dict[str, float]:
         breakdown = defaultdict(float)
         for t in self.transactions:
-            if t["amount"] < 0: # Only expenses
-                breakdown[t["category"]] += abs(t["amount"])
+            if t["amount"] < 0:
+                breakdown[t["category"]] += t["amount"]
+            elif t["amount"] > 0 and t["category"] == "Disbursement":
+                breakdown[t["category"]] += t["amount"]
         return dict(breakdown)
 
     def get_big_ticket_expenses(self, threshold: float = BIG_TICKET_THRESHOLD) -> List[Dict[str, Any]]:
@@ -32,6 +37,9 @@ class AnalyticsEngine:
             if t["amount"] < 0:
                 category_spend[t["category"]] += abs(t["amount"])
                 category_spend["Total"] += abs(t["amount"])
+            elif t["amount"] > 0 and t["category"] == "Disbursement":
+                category_spend[t["category"]] += t["amount"] # Refunds reduce expense
+        category_spend["Total"] -= category_spend["Disbursement"] # Adjust total for disbursements
         
         total_budget = budgets.get('Total', 0)
         if total_budget > 0:
