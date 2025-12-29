@@ -42,3 +42,13 @@ def test_budget_alerts(sample_transactions):
     
     # Food spent is 170, limit 100 -> 170% -> Exceeded
     assert any("Budget Exceeded for Food" in alert for alert in alerts)
+
+def test_budget_alerts_custom_budget(sample_transactions):
+    engine = AnalyticsEngine(sample_transactions)
+    custom_budgets = {"Food": 200.0}
+    # Food spent is 170, limit 200 -> 85% -> 75% Alert
+    alerts = engine.check_budget_alerts(sample_transactions, budgets=custom_budgets)
+    
+    assert any("75% Budget Alert for Food" in alert for alert in alerts)
+    assert not any("Budget Exceeded for Food" in alert for alert in alerts)
+

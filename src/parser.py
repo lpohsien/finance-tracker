@@ -30,7 +30,7 @@ class TransactionParser:
             }
         ]
 
-    def parse_message(self, full_message: str) -> Optional[Dict[str, Any]]:
+    def parse_message(self, full_message: str, categories_list: list = None) -> Optional[Dict[str, Any]]:
         """
         Parses the composite message from Apple Shortcuts.
         Format: "{Bank_Msg},{ISO_Timestamp},{Remarks}"
@@ -82,7 +82,7 @@ class TransactionParser:
                 return None
 
         # Categorization
-        category = self._categorize(parsed_data, remarks, full_message)
+        category = self._categorize(parsed_data, remarks, full_message, categories_list)
 
         # Description
         description = f"{remarks}" if remarks else ""
@@ -116,7 +116,7 @@ class TransactionParser:
                 return data
         return None
 
-    def _categorize(self, parsed_data: Dict[str, Any], remarks: str, full_message: str) -> str:
+    def _categorize(self, parsed_data: Dict[str, Any], remarks: str, full_message: str, categories_list: list = None) -> str:
         # 1. Keyword based (Simple)
         description = parsed_data.get("merchant") or parsed_data.get("recipient") or ""
         text_to_check = (description + " " + remarks).lower()
@@ -130,8 +130,10 @@ class TransactionParser:
         }
 
         for cat, words in keywords.items():
+            if categories_list and cat not in categories_list:
+                continue
             if any(word in text_to_check for word in words):
                 return cat
 
         # 2. LLM Fallback
-        return categorize_transaction(full_message)
+        return categorize_transaction(full_message, categories_list)

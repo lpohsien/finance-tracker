@@ -4,7 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def categorize_transaction(message: str) -> str:
+def categorize_transaction(message: str, categories_list: list = None) -> str:
     """
     Uses Gemini to categorize a transaction based on the message and remarks.
     """
@@ -18,7 +18,10 @@ def categorize_transaction(message: str) -> str:
     if not client:
         return "Uncategorized"
 
-    categories_str = ", ".join(DEFAULT_CATEGORIES)
+    if categories_list is None:
+        categories_list = DEFAULT_CATEGORIES
+
+    categories_str = ", ".join(categories_list)
     prompt = f"""
     You are a financial assistant. Categorize the following transaction into one of these categories: {categories_str} using
     information from the message (e.g., merchant name, time and remarks).
@@ -35,11 +38,11 @@ def categorize_transaction(message: str) -> str:
             model=LLM_MODEL,
             contents=prompt
         )
-        category = response.text.strip()
+        category = response.text.strip() if response and response.text else "Other"
         logger.info(f"LLM categorization response: {category}")
 
 
-        if category in DEFAULT_CATEGORIES:
+        if category in categories_list:
             return category
         return "Other"
     except Exception as e:

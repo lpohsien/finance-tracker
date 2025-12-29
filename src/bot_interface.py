@@ -22,6 +22,7 @@ class FinanceBot:
         
         # Check if user is already authorized
         if user_id in ALLOWED_USER_IDS:
+             self.storage.initialize_user_config(user_id)
              await update.message.reply_text("Finance Tracker Bot Started. Send me your transaction messages!")
              return
 
@@ -29,6 +30,7 @@ class FinanceBot:
         if START_KEY and context.args and context.args[0] == START_KEY:
             from src.utils import add_allowed_user
             if add_allowed_user(user_id):
+                self.storage.initialize_user_config(user_id)
                 await update.message.reply_text("✅ Access Granted! You are now authorized to use this bot.")
                 logger.info(f"User {user_id} authorized via start key.")
             else:
@@ -44,7 +46,8 @@ class FinanceBot:
         message_text = update.message.text
         logger.info(f"Received message: {message_text} from user ID: {user_id}")
 
-        parsed_data = self.parser.parse_message(message_text)
+        user_categories = self.storage.get_user_categories(user_id)
+        parsed_data = self.parser.parse_message(message_text, user_categories)
         
         if parsed_data:
             self.storage.save_transaction(parsed_data, user_id)
@@ -54,7 +57,15 @@ class FinanceBot:
             analytics = AnalyticsEngine(transactions)
             now = datetime.now()
             month_txs = analytics.filter_transactions_by_month(now.year, now.month)
-            alerts = analytics.check_budget_alerts(month_txs)
+            
+            user_config = self.storage.get_user_config(user_id)
+            budgets = user_config.get("budgets", {})
+            big_ticket_threshold = user_config["big_ticket_threshold"]
+
+            alerts = analytics.check_budget_alerts(month_txs, budgets)
+            
+            if parsed_data['type'] != 'Income' and abs(parsed_data['amount']) >= big_ticket_threshold:
+                 alerts.append(f"🔥 Big Ticket Alert: SGD {abs(parsed_data['amount']):.2f} >= SGD {big_ticket_threshold:.2f}")
             
             response = (
                 f"✅ Transaction Saved!\n"
@@ -73,6 +84,109 @@ class FinanceBot:
         else:
             await update.message.reply_text("❌ Could not parse message. Ensure format is correct.")
             await update.message.reply_text("Correct format is __bank_message__(paynow/card),__timestamp__,__remarks__")
+
+    async def set_budget_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = self._is_authorized(update)
+        if not user_id:
+            return
+
+        if not context.args or len(context.args) != 2:
+            await update.message.reply_text("❌ Usage: /set_budget <category>/'threshold' <amount>")
+            return
+        
+        category = str(context.args[0]).capitalize()
+
+        try:
+            amount = float(context.args[1])
+        except ValueError:
+            await update.message.reply_text("❌ Invalid amount. Please provide a number.")
+            return
+
+        if category.lower() == 'threshold':
+            self.storage.update_user_budget(user_id, "big_ticket", amount)
+            await update.message.reply_text(f"✅ Big ticket threshold set to SGD {amount:.2f}")
+        else:
+            category = category.capitalize()
+            user_categories = self.storage.get_user_categories(user_id)
+            if category not in user_categories and category != "Total":
+                await update.message.reply_text(f"❌ Category '{category}' not found in your category list. Use /add_cat to add it first.")
+                return
+            
+            self.storage.update_user_budget(user_id, category, amount)
+            await update.message.reply_text(f"✅ Budget for '{category}' set to SGD {amount:.2f}")
+
+    async def add_category_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = self._is_authorized(update)
+        if not user_id:
+            return
+
+        if not context.args:
+            await update.message.reply_text("❌ Usage: /add_cat <category1>, <category2>, ...")
+            return
+
+        categories_str = " ".join(context.args)
+        categories = [c.strip().capitalize() for c in categories_str.split(",") if c.strip()]
+        
+        if not categories:
+            await update.message.reply_text("❌ No valid categories provided.")
+            return
+
+        self.storage.add_user_categories(user_id, categories)
+        await update.message.reply_text(f"✅ Added categories: {', '.join(categories)}")
+
+    async def delete_category_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = self._is_authorized(update)
+        if not user_id:
+            return
+
+        if not context.args:
+            await update.message.reply_text("❌ Usage: /delete_cat <category1>, <category2>, ...")
+            return
+
+        categories_str = " ".join(context.args)
+        categories = [c.strip().capitalize() for c in categories_str.split(",") if c.strip()]
+        
+        if not categories:
+            await update.message.reply_text("❌ No valid categories provided.")
+            return
+
+        self.storage.delete_user_categories(user_id, categories)
+        await update.message.reply_text(f"✅ Deleted categories: {', '.join(categories)}")
+
+    async def clear_category_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = self._is_authorized(update)
+        if not user_id:
+            return
+
+        self.storage.clear_user_categories(user_id)
+        await update.message.reply_text("✅ All categories cleared.")
+
+    async def reset_budget_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = self._is_authorized(update)
+        if not user_id:
+            return
+
+        self.storage.reset_user_budget(user_id)
+        await update.message.reply_text("✅ Budget reset to default values.")
+
+    async def view_budget_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = self._is_authorized(update)
+        if not user_id:
+            return
+
+        config = self.storage.get_user_config(user_id)
+        budgets = config.get("budgets", {})
+        
+        response = "📊 **Current Budgets**\n"
+        if budgets:
+            for category, amount in budgets.items():
+                response += f"- {category}: SGD {amount:.2f}\n"
+        else:
+            response += "No budgets configured.\n"
+            
+        response += f"\n🔥 **Big Ticket Threshold**: SGD {config['big_ticket_threshold']:.2f}"
+            
+        await update.message.reply_text(response, parse_mode='Markdown')
 
     async def total_stats_commands(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = self._is_authorized(update)
@@ -233,6 +347,13 @@ class FinanceBot:
             export - /month <year> <month> exports monthly transactions as csv, defaults to current
             delete - /delete <id> permanently removes a transaction by ID
             clear - Permanently delete all transactions
+            set_budget - /set_budget <category> <amount> set budget for a category
+            reset_budget - reset all budgets to default values
+            view_budget - view all current budgets
+            add_cat - /add_cat <cat1>, <cat2> add new categories
+            delete_cat - /delete_cat <cat1>, <cat2> delete categories
+            clear_cat - remove all categories
+            <message> - Send a bank transaction message to log it
         '''
         application.add_handler(CommandHandler("start", self.start))
         application.add_handler(CommandHandler("stats", self.total_stats_commands))
@@ -240,6 +361,12 @@ class FinanceBot:
         application.add_handler(CommandHandler("delete", self.delete_transaction_command))
         application.add_handler(CommandHandler("clear", self.delete_all_command))
         application.add_handler(CommandHandler("export", self.export_command))
+        application.add_handler(CommandHandler("set_budget", self.set_budget_command))
+        application.add_handler(CommandHandler("reset_budget", self.reset_budget_command))
+        application.add_handler(CommandHandler("view_budget", self.view_budget_command))
+        application.add_handler(CommandHandler("add_cat", self.add_category_command))
+        application.add_handler(CommandHandler("delete_cat", self.delete_category_command))
+        application.add_handler(CommandHandler("clear_cat", self.clear_category_command))
         application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), self.handle_message))
 
         logger.info("Bot is polling...")

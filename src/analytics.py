@@ -22,7 +22,10 @@ class AnalyticsEngine:
     def get_big_ticket_expenses(self, threshold: float = BIG_TICKET_THRESHOLD) -> List[Dict[str, Any]]:
         return [t for t in self.transactions if t["amount"] < 0 and abs(t["amount"]) >= threshold]
 
-    def check_budget_alerts(self, current_month_transactions: List[Dict[str, Any]]) -> List[str]:
+    def check_budget_alerts(self, current_month_transactions: List[Dict[str, Any]], budgets: Dict[str, float] = None) -> List[str]:
+        if budgets is None:
+            budgets = DEFAULT_BUDGETS
+
         category_spend = defaultdict(float)
         category_spend["Total"] = 0.0
         for t in current_month_transactions:
@@ -30,12 +33,16 @@ class AnalyticsEngine:
                 category_spend[t["category"]] += abs(t["amount"])
                 category_spend["Total"] += abs(t["amount"])
         
-        total_expenses_str = f"${category_spend['Total']:.2f} / ${DEFAULT_BUDGETS.get('Total', 0):.2f}"
-        total_expenses_ratio_str = f"{(category_spend['Total'] / DEFAULT_BUDGETS.get('Total', 1)) * 100:.2f}%"
-        alerts = [f"📊 Monthly Expenses: \n {total_expenses_str} ({total_expenses_ratio_str})"]
+        total_budget = budgets.get('Total', 0)
+        if total_budget > 0:
+            total_expenses_str = f"${category_spend['Total']:.2f} / ${total_budget:.2f}"
+            total_expenses_ratio_str = f"{(category_spend['Total'] / total_budget) * 100:.2f}%"
+            alerts = [f"📊 Monthly Expenses: \n {total_expenses_str} ({total_expenses_ratio_str})"]
+        else:
+            alerts = [f"📊 Monthly Expenses: ${category_spend['Total']:.2f}"]
 
 
-        for category, limit in DEFAULT_BUDGETS.items():
+        for category, limit in budgets.items():
             spent = category_spend.get(category, 0)
             if limit > 0:
                 percentage = (spent / limit) * 100

@@ -20,7 +20,7 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 LLM_MODEL = "gemini-3-flash-preview"
 
 # Storage Configuration
-TRANSACTIONS_DIR = DATA_DIR / "records"
+TRANSACTIONS_DIR = DATA_DIR
 
 # Export Configuration
 EXPORTS_DIR = DATA_DIR / "exports"
@@ -40,10 +40,14 @@ DEFAULT_CATEGORIES = [
     "Snack",
     "Transport",
     "Shopping",
-    "Utilities",
+    "Groceries",
+    "Donation",
     "Entertainment",
+    "Travel",
     "Health",
-    "Transfer",
+    "Education",
+    "Subscription",
+    "Fixed Expense",
     "Income",
     "Other"
 ]
