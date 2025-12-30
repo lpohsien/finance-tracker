@@ -18,6 +18,7 @@ ALLOWED_USER_IDS = [int(uid.strip()) for uid in os.getenv("ALLOWED_USER_IDS", ""
 # Google Gemini Configuration
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 LLM_MODEL = "gemini-3-flash-preview"
+# LLM_MODEL = "gemini-2.5-flash"  # Alternative model
 
 # Storage Configuration
 TRANSACTIONS_DIR = DATA_DIR

@@ -3,34 +3,19 @@ import logging
 import uuid
 from datetime import datetime
 from dateutil import parser as date_parser
-from dateutil import tz
-from typing import Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 from src.llm_helper import categorize_transaction
+from src.banks import UOBParser
 
 logger = logging.getLogger(__name__)
 
 class TransactionParser:
     def __init__(self):
-        # Regex patterns for different transaction types
-        self.patterns = [
-            {
-                "type": "PayNow Outgoing",
-                "regex": re.compile(r"You made a PayNow transfer of SGD (?P<amount>[\d\.]+) to (?P<recipient>.+?) on your a/c ending (?P<account>\d+) at (?P<datetime_str>.+?)\. If unauthorised"),
-                "sign": -1
-            },
-            {
-                "type": "PayNow Incoming",
-                "regex": re.compile(r"You have received SGD (?P<amount>[\d\.]+) in your PayNow-linked account ending (?P<account>\d+) on (?P<datetime_str>.+?)\."),
-                "sign": 1
-            },
-            {
-                "type": "Card Transaction",
-                "regex": re.compile(r"A transaction of SGD (?P<amount>[\d\.]+) was made with your UOB Card ending (?P<account>\d+) on (?P<date_str>.+?) at (?P<merchant>.+?)\. If unauthorised"),
-                "sign": -1
-            }
-        ]
+        self.bank_parsers = {
+            "UOB": UOBParser(),
+        }
 
-    def parse_message(self, full_message: str, categories_list: list = None) -> Optional[Dict[str, Any]]:
+    def parse_message(self, full_message: str, categories_list: Optional[List] = None) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
         """
         Parses the composite message from Apple Shortcuts.
         Format: "{Bank_Msg},{bank},{ISO_Timestamp},{Remarks}"
@@ -38,56 +23,55 @@ class TransactionParser:
         # Split the message. We expect the ISO timestamp to be the anchor.
         # Regex to find the ISO timestamp in the middle
         # 2025-12-28T15:57:31+08:00
+        status = None
         split_pattern = re.compile(r"(.*),(\w+),(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}),(.*)", re.DOTALL)
         match = split_pattern.match(full_message)
         
         if not match:
             logger.error(f"Failed to split message: {full_message}")
-            return None
+            return None, "Invalid message format"
 
         bank_msg = match.group(1).strip()
         bank_name = match.group(2).strip()
         shortcut_timestamp_str = match.group(3).strip()
         remarks = match.group(4).strip()
 
-        parsed_data = self._parse_bank_message(bank_msg)
-        
+        # Select parser based on bank name
+        parser = self.bank_parsers.get(bank_name)
+        if not parser:
+            logger.error(f"No parser found for bank: {bank_name}")
+            return None, "Unsupported bank"
+
+        # Try parsing the bank message using regex rules
+        parsed_data = parser.rule_parse(bank_msg)
         if not parsed_data:
             logger.info(f"Message ignored or failed to parse bank text: {bank_msg}")
-            return None
+            status = f"Warning: No parsing rules matched for bank message: <blockquote expandable>{bank_msg}</blockquote>"
 
-        # Determine final timestamp
-        final_timestamp = None
-        if parsed_data.get("datetime_str"):
-            try:
-                # Clean up UOB date formats if needed
-                dt_str = parsed_data["datetime_str"].replace(" at ", " ")
-                # Handle "1:44PM SGT, 27 Dec 25" -> remove SGT for dateutil if it confuses it, 
-                # but dateutil is usually good.
-                # UOB: "1:44PM SGT, 27 Dec 25"
-                tzinfos = {"SGT": tz.gettz("Asia/Singapore")}
-                final_timestamp = date_parser.parse(dt_str, fuzzy=True, tzinfos=tzinfos)
-            except Exception as e:
-                logger.warning(f"Failed to parse bank timestamp '{parsed_data['datetime_str']}': {e}")
-        
-        if not final_timestamp and parsed_data.get("date_str"):
-             # Card transaction only has date, use shortcut timestamp for time if possible, 
-             # but spec says "use the ISO timestamp at the end for storage" for Type 3.
-             pass
+            # If no parsing rules matched, use LLM-based parsing
+            parsed_data, llm_err = parser.llm_parse(bank_msg)
+            if not parsed_data:
+                return None, f"LLM-parsing failed for <blockquote expandable>{llm_err}</blockquote>. Full message: <pre>{bank_msg}</pre>"
+            
+            # Append to status that LLM was used
+            status = "⚠️ Used LLM parsing. Verify details."
 
-        if not final_timestamp:
-            try:
-                final_timestamp = date_parser.isoparse(shortcut_timestamp_str)
-            except Exception as e:
-                logger.error(f"Failed to parse shortcut timestamp '{shortcut_timestamp_str}': {e}")
-                return None
+        final_timestamp = parsed_data.get("timestamp")
+        if not final_timestamp or not isinstance(final_timestamp, str):
+            final_timestamp = shortcut_timestamp_str
+
+        try:
+            date_parser.isoparse(final_timestamp)
+        except Exception as e:
+            logger.error(f"Failed to parse shortcut timestamp '{final_timestamp}': {e}")
+            return None, "Invalid timestamp format"
 
         # Categorization
         category = self._categorize(parsed_data, remarks, full_message, categories_list)
 
         # Description
         description = f"{remarks}" if remarks else ""
-        description += f" [{parsed_data.get("merchant") or parsed_data.get("recipient") or "Unknown"}]"
+        description += f" [{parsed_data.get('description')}]"
 
         # Generate UUID
         # We use the final timestamp and the raw message to ensure uniqueness and determinism
@@ -96,46 +80,39 @@ class TransactionParser:
         # Construct result
         return {
             "id": transaction_id,
-            "timestamp": final_timestamp.isoformat(),
+            "timestamp": final_timestamp,
             "bank": bank_name,
             "type": parsed_data["type"],
-            "amount": parsed_data["amount"] * parsed_data["sign"],
+            "amount": parsed_data["amount"],
             "description": description,
             "account": parsed_data.get("account"),
             "category": category,
             "raw_message": full_message
-        }
+        }, status
 
-    def _parse_bank_message(self, text: str) -> Optional[Dict[str, Any]]:
-        for pattern in self.patterns:
-            match = pattern["regex"].search(text)
-            if match:
-                data = match.groupdict()
-                data["type"] = pattern["type"]
-                data["sign"] = pattern["sign"]
-                data["amount"] = float(data["amount"])
-                return data
-        return None
-
-    def _categorize(self, parsed_data: Dict[str, Any], remarks: str, full_message: str, categories_list: list = None) -> str:
+    def _categorize(self, parsed_data: Dict[str, Any], remarks: str, full_message: str, categories_list: Optional[List[str]] = None) -> str:
         # 1. Keyword based (Simple)
-        description = parsed_data.get("merchant") or parsed_data.get("recipient") or ""
+        description = parsed_data.get("description") or ""
         text_to_check = (description + " " + remarks).lower()
 
-        keywords = { cat: [cat.lower()] for cat in categories_list }
+        if categories_list:
+             keywords = { cat: [cat.lower()] for cat in categories_list }
+        else:
+             # Fallback if no categories list provided (should not happen with current bot logic)
+             keywords = {}
+
         if "disbursement" in text_to_check:
             return "Disbursement"
         
-        keywords["Food"].extend(["dinner", "lunch", "breakfast", "cafe"])
-        keywords["Snack"].extend(["snacks","starbucks", "coffee", "bubble tea", "tea"])
-        keywords["Transport"].extend([ "grab", "gojek", "uber", "taxi", "train", "bus", "mrt"])
-        keywords["Shopping"].extend(["shopee", "lazada", "amazon", "uniqlo"])
-        keywords["Groceries"].extend(["grocery", "fairprice", "cold storage", "giant", "market"])
-        keywords["Utilities"].extend(["singtel", "starhub", "m1", "electricity", "water"])
+        # Add default keywords if category exists in user list
+        if "Food" in keywords: keywords["Food"].extend(["dinner", "lunch", "breakfast", "cafe", "restaurant", "mcdonald", "kfc", "food"])
+        if "Snack" in keywords: keywords["Snack"].extend(["snacks", "coffee", "bubble tea", "tea", "drink", "drinks"])
+        if "Transport" in keywords: keywords["Transport"].extend([ "grab", "gojek", "uber", "taxi", "train", "bus", "mrt", "concession", "smrt"])
+        if "Shopping" in keywords: keywords["Shopping"].extend(["shopee", "lazada", "amazon", "uniqlo"])
+        if "Groceries" in keywords: keywords["Groceries"].extend(["grocery", "fairprice", "cold storage", "giant", "market"])
+        if "Utilities" in keywords: keywords["Utilities"].extend(["singtel", "starhub", "m1", "electricity", "water"])
 
         for cat, words in keywords.items():
-            if categories_list and cat not in categories_list:
-                continue
             if any(word in text_to_check for word in words):
                 return cat
 

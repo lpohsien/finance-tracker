@@ -49,11 +49,14 @@ class FinanceBot:
         if not user_id:
             return
 
-        message_text = update.message.text
+        if not update.message or not update.message.text:
+            return
+
+        message_text = update.message.text if update.message and update.message.text else ""
         logger.debug(f"Received message: {message_text} from user ID: {user_id}")
 
         user_categories = self.storage.get_user_categories(user_id)
-        parsed_data = self.parser.parse_message(message_text, user_categories)
+        parsed_data, err_msg = self.parser.parse_message(message_text, user_categories)
         
         if parsed_data:
             self.storage.save_transaction(parsed_data, user_id)
@@ -72,7 +75,7 @@ class FinanceBot:
             
             if parsed_data['type'] != 'Income' and abs(parsed_data['amount']) >= big_ticket_threshold:
                  alerts.append(f"🔥 Big Ticket Alert: SGD {abs(parsed_data['amount']):.2f} >= SGD {big_ticket_threshold:.2f}")
-            
+
             response = (
                 f"✅ Transaction Saved!\n"
                 f"<b>ID</b>: <code>{parsed_data['id']}</code>\n"
@@ -88,9 +91,13 @@ class FinanceBot:
                 response += "\n" + "\n".join(alerts)
                 
             await update.message.reply_text(response, parse_mode='HTML')
+            if err_msg:
+                await update.message.reply_text(f"Warning: {err_msg}", parse_mode='HTML')
         else:
             await update.message.reply_text("❌ Could not parse message. Ensure format is correct.")
             await update.message.reply_text("Correct format is __bank_message__(paynow/card),__timestamp__,__remarks__")
+            if err_msg:
+                await update.message.reply_text(err_msg, parse_mode='HTML')
 
     async def set_budget_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = self._is_authorized(update)
