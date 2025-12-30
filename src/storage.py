@@ -7,7 +7,7 @@ from src.config import TRANSACTIONS_DIR, DEFAULT_BUDGETS, BIG_TICKET_THRESHOLD, 
 
 logger = logging.getLogger(__name__)
 
-FIELDNAMES = ["id", "timestamp", "type", "amount", "description", "account", "category", "remarks", "raw_message"]
+FIELDNAMES = ["id", "timestamp", "bank", "type", "amount", "description", "account", "category", "raw_message"]
 
 class StorageManager:
     def __init__(self, file_path: Path = TRANSACTIONS_DIR):

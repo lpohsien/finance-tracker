@@ -33,12 +33,12 @@ class TransactionParser:
     def parse_message(self, full_message: str, categories_list: list = None) -> Optional[Dict[str, Any]]:
         """
         Parses the composite message from Apple Shortcuts.
-        Format: "{Bank_Msg},{ISO_Timestamp},{Remarks}"
+        Format: "{Bank_Msg},{bank},{ISO_Timestamp},{Remarks}"
         """
         # Split the message. We expect the ISO timestamp to be the anchor.
         # Regex to find the ISO timestamp in the middle
         # 2025-12-28T15:57:31+08:00
-        split_pattern = re.compile(r"(.*),(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}),(.*)", re.DOTALL)
+        split_pattern = re.compile(r"(.*),(\w+),(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}),(.*)", re.DOTALL)
         match = split_pattern.match(full_message)
         
         if not match:
@@ -46,8 +46,9 @@ class TransactionParser:
             return None
 
         bank_msg = match.group(1).strip()
-        shortcut_timestamp_str = match.group(2).strip()
-        remarks = match.group(3).strip()
+        bank_name = match.group(2).strip()
+        shortcut_timestamp_str = match.group(3).strip()
+        remarks = match.group(4).strip()
 
         parsed_data = self._parse_bank_message(bank_msg)
         
@@ -96,12 +97,12 @@ class TransactionParser:
         return {
             "id": transaction_id,
             "timestamp": final_timestamp.isoformat(),
+            "bank": bank_name,
             "type": parsed_data["type"],
             "amount": parsed_data["amount"] * parsed_data["sign"],
             "description": description,
             "account": parsed_data.get("account"),
             "category": category,
-            "remarks": remarks,
             "raw_message": full_message
         }
 

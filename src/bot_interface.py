@@ -50,7 +50,7 @@ class FinanceBot:
             return
 
         message_text = update.message.text
-        logger.info(f"Received message: {message_text} from user ID: {user_id}")
+        logger.debug(f"Received message: {message_text} from user ID: {user_id}")
 
         user_categories = self.storage.get_user_categories(user_id)
         parsed_data = self.parser.parse_message(message_text, user_categories)
@@ -76,6 +76,7 @@ class FinanceBot:
             response = (
                 f"✅ Transaction Saved!\n"
                 f"<b>ID</b>: <code>{parsed_data['id']}</code>\n"
+                f"<b>Bank</b>: {parsed_data['bank']}\n"
                 f"<b>Type</b>: {parsed_data['type']}\n"
                 f"<b>Time</b>: {datetime.fromisoformat(parsed_data['timestamp']).strftime('%y/%m/%d %H:%M')}\n"
                 f"<b>Amount</b>: SGD {parsed_data['amount']:.2f}\n"
