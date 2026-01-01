@@ -24,6 +24,17 @@ class AnalyticsEngine:
                 breakdown[t["category"]] += t["amount"]
         return dict(breakdown)
 
+    def get_account_breakdown(self) -> Dict[str, float]:
+        breakdown = defaultdict(float)
+        for t in self.transactions:
+            if t["amount"] < 0:
+                key = f"{t.get('bank', 'Unknown')} {t.get('account', 'Unknown')} ({t.get('type', 'Unknown')})"
+                breakdown[key] += t["amount"]
+            elif t["amount"] > 0 and t["category"] == "Disbursement":
+                key = f"{t.get('bank', 'Unknown')} {t.get('account', 'Unknown')} ({t.get('type', 'Unknown')})"
+                breakdown[key] += t["amount"]
+        return dict(breakdown)
+
     def get_big_ticket_expenses(self, threshold: float = BIG_TICKET_THRESHOLD) -> List[Dict[str, Any]]:
         return [t for t in self.transactions if t["amount"] < 0 and abs(t["amount"]) >= threshold]
 

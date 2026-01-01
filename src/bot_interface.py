@@ -280,7 +280,13 @@ class FinanceBot:
         breakdown = list(analytics.get_category_breakdown().items())
         breakdown.sort(key=lambda x: x[1])
         for cat, amount in breakdown:
-            response += f"- {cat}: SGD {amount:.2f} ({abs(amount)/abs(totals['expense']):.2%})\n"
+            response += f"- {cat}: SGD {amount:.2f} ({abs(amount)/abs(totals['expense']) if totals['expense'] else 0:.1%})\n"
+
+        response += "\n💳 **Account Breakdown**\n"
+        account_breakdown = list(analytics.get_account_breakdown().items())
+        account_breakdown.sort(key=lambda x: x[1])
+        for acc, amount in account_breakdown:
+            response += f"- {acc}:\n\tSGD {amount:.2f} ({abs(amount)/abs(totals['expense']) if totals['expense'] else 0:.1%})\n"
             
         await update.message.reply_text(response, parse_mode='Markdown')
 
