@@ -85,3 +85,14 @@ class AnalyticsEngine:
             except ValueError:
                 continue
         return filtered
+
+    def get_daily_breakdown(self) -> Dict[int, float]:
+        breakdown = defaultdict(float)
+        for t in self.transactions:
+            if t["amount"] < 0:
+                try:
+                    dt = datetime.fromisoformat(t["timestamp"])
+                    breakdown[dt.day] += abs(t["amount"])
+                except ValueError:
+                    continue
+        return dict(breakdown)

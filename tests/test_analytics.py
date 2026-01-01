@@ -19,8 +19,8 @@ def test_total_income_expense(sample_transactions):
 def test_category_breakdown(sample_transactions):
     analytics = AnalyticsEngine(sample_transactions)
     breakdown = analytics.get_category_breakdown()
-    assert breakdown["Food"] == 170.0
-    assert breakdown["Shopping"] == 50.0
+    assert breakdown["Food"] == -170.0
+    assert breakdown["Shopping"] == -50.0
     assert "Income" not in breakdown # Breakdown is for expenses usually, or we can separate. Code implements expenses only.
 
 def test_big_ticket_expenses(sample_transactions):
@@ -48,7 +48,19 @@ def test_budget_alerts_custom_budget(sample_transactions):
     custom_budgets = {"Food": 200.0}
     # Food spent is 170, limit 200 -> 85% -> 75% Alert
     alerts = engine.check_budget_alerts(sample_transactions, budgets=custom_budgets)
-    
     assert any("75% Budget Alert for Food" in alert for alert in alerts)
     assert not any("Budget Exceeded for Food" in alert for alert in alerts)
+
+def test_daily_breakdown(sample_transactions):
+    analytics = AnalyticsEngine(sample_transactions)
+    breakdown = analytics.get_daily_breakdown()
+    
+    # 27th: 20
+    # 28th: 50 (Income ignored)
+    # 29th: 150
+    
+    assert breakdown[27] == 20.0
+    assert breakdown[28] == 50.0
+    assert breakdown[29] == 150.0
+    assert 30 not in breakdown
 

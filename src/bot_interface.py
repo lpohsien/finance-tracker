@@ -9,6 +9,7 @@ from src.parser import TransactionParser
 from src.storage import StorageManager, FIELDNAMES
 from src.analytics import AnalyticsEngine
 from datetime import datetime
+import calendar
 
 logger = logging.getLogger(__name__)
 
@@ -290,6 +291,66 @@ class FinanceBot:
             
         await update.message.reply_text(response, parse_mode='Markdown')
 
+    async def daily_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = self._is_authorized(update)
+        if not user_id:
+            return
+
+        if context.args and len(context.args) >= 2:
+            try:
+                year = int(context.args[0])
+                month = int(context.args[1])
+            except ValueError:
+                await update.message.reply_text("❌ Invalid year or month. Use /daily <year> <month>.")
+                return
+        elif not context.args or len(context.args) == 0:
+            now = datetime.now()
+            year = now.year
+            month = now.month
+        else:
+            await update.message.reply_text("❌ Invalid command format. Use /daily <year> <month> or /daily for current month.")
+            return
+
+        transactions = self.storage.get_transactions(user_id=user_id)
+        analytics = AnalyticsEngine(transactions)
+        month_txs = analytics.filter_transactions_by_month(year, month)
+        analytics = AnalyticsEngine(month_txs)
+
+        daily_breakdown = analytics.get_daily_breakdown()
+        
+        user_config = self.storage.get_user_config(user_id)
+        budgets = user_config.get("budgets", {})
+        total_budget = budgets.get('Total', 0)
+        
+        daily_budget_limit = total_budget / 31.0 if total_budget > 0 else 0
+        
+        num_days = calendar.monthrange(year, month)[1]
+        year_month_str = datetime(year, month, 1).strftime('%B %Y')
+        
+        response = f"📅 **Daily Breakdown for {year_month_str}**\n"
+        if daily_budget_limit > 0:
+            response += f"Daily Budget Limit (approx): SGD {daily_budget_limit:.2f}\n"
+        response += "\n```\n"
+        
+        bar_max_chars = 15
+        
+        for day in range(1, num_days + 1):
+            amount = daily_breakdown.get(day, 0.0)
+            
+            bar_len = 0
+            if daily_budget_limit > 0:
+                fill_ratio = min(amount, daily_budget_limit) / daily_budget_limit
+                bar_len = int(fill_ratio * bar_max_chars)
+            elif amount > 0:
+                 bar_len = 0
+
+            bar = "█" * bar_len
+            response += f"{day:02d} | {bar:<{bar_max_chars}} | {amount:8.2f}\n"
+            
+        response += "```"
+        
+        await update.message.reply_text(response, parse_mode='Markdown')
+
     async def delete_transaction_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = self._is_authorized(update)
         if not user_id:
@@ -372,6 +433,8 @@ class FinanceBot:
 /stats - View statistics for current month
 /stats [year] [month] - View monthly stats
 /stats all - View all-time stats
+/daily - View daily breakdown for current month
+/daily [year] [month] - View daily breakdown
 /export - Export current month to CSV
 /export [year] [month] - Export to CSV
 
@@ -430,6 +493,7 @@ Simply forward or paste your bank transaction message.
             BotCommand("start", "Initialize or Refresh bot"),
             BotCommand("help", "Show manual"),
             BotCommand("stats", "View statistics"),
+            BotCommand("daily", "View daily breakdown"),
             BotCommand("export", "Export CSV"),
             BotCommand("viewbudget", "View budgets"),
             BotCommand("setbudget", "Set budget"),
@@ -443,6 +507,7 @@ Simply forward or paste your bank transaction message.
         application.add_handler(CommandHandler("start", self.start))
         application.add_handler(CommandHandler("help", self.help_command))
         application.add_handler(CommandHandler("stats", self.stats_commands))
+        application.add_handler(CommandHandler("daily", self.daily_command))
         application.add_handler(CommandHandler("delete", self.delete_transaction_command))
         application.add_handler(CommandHandler("clear", self.delete_all_command))
         application.add_handler(CommandHandler("export", self.export_command))
