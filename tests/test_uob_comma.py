@@ -34,3 +34,13 @@ def test_parse_card_transaction_with_comma(parser):
     assert result["type"] == "Card"
     assert result["amount"] == -2500.50
     assert result["account"] == "9012"
+
+def test_parse_instalment_plan(parser):
+    msg = "UOB Instalment Payment Plan: Your monthly instalment of SGD 1,200.00 has been billed to your UOB card ending 1234 on 01/01/26,UOB,2026-01-01T10:00:00+08:00, iPhone Installment"
+    result, err = parser.parse_message(msg)
+    
+    assert err is None
+    assert result is not None
+    assert result["type"] == "Card"
+    assert result["amount"] == -1200.00
+    assert result["account"] == "1234"

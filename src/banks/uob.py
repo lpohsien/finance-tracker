@@ -20,7 +20,11 @@ class UOBParser(BaseBankParser):
                 "sign": 1
             },
             {
-                "regex": re.compile(r"A transaction of SGD (?P<amount>[\d\.,]+) was made with your UOB (?P<method>Card) ending (?P<account>\d+) on (?P<date_str>.+?) at (?P<recipient>.+?)\. If unauthorised"),
+                "regex": re.compile(r"A transaction of SGD (?P<amount>[\d\.,]+) was made with your UOB (?P<method>[Cc]ard) ending (?P<account>\d+) on (?P<date_str>.+?) at (?P<recipient>.+?)\. If unauthorised"),
+                "sign": -1
+            },
+            {
+                "regex": re.compile(r"UOB Instalment Payment Plan: Your monthly instalment of SGD (?P<amount>[\d\.,]+) has been billed to your UOB (?P<method>[Cc]ard) ending (?P<account>\d+) on (?P<date_str>.+?)"),
                 "sign": -1
             }
         ]
@@ -32,7 +36,8 @@ class UOBParser(BaseBankParser):
             "fund transfer(s)": "Transfer",
             "PayNow transfer": "PayNow",
             "PayNow": "PayNow",
-            "Card": "Card"
+            "Card": "Card",
+            "card": "Card",
         }
 
         # Validate that all mapped types are known transaction types
