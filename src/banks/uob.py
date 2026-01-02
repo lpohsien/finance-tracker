@@ -8,19 +8,19 @@ class UOBParser(BaseBankParser):
     def __init__(self):
         self.patterns = [
             {
-                "regex": re.compile(r"You made a (?P<method>.+?) of SGD (?P<amount>[\d\.]+) to (?P<recipient>.+?) on your a/c ending (?P<account>\d+) at (?P<datetime_str>.+?)\. If unauthorised"),
+                "regex": re.compile(r"You made a (?P<method>.+?) of SGD (?P<amount>[\d\.,]+) to (?P<recipient>.+?) on your a/c ending (?P<account>\d+) at (?P<datetime_str>.+?)\. If unauthorised"),
                 "sign": -1
             },
             {
-                "regex": re.compile(r"You made a (?P<method>.+?) of SGD (?P<amount>[\d\.]+) to (?P<recipient>.+?) at (?P<datetime_str>.+?), on your a/c ending (?P<account>\d+)\. If unauthorised"),
+                "regex": re.compile(r"You made a (?P<method>.+?) of SGD (?P<amount>[\d\.,]+) to (?P<recipient>.+?) at (?P<datetime_str>.+?), on your a/c ending (?P<account>\d+)\. If unauthorised"),
                 "sign": -1
             },
             {
-                "regex": re.compile(r"You have received SGD (?P<amount>[\d\.]+) in your (?P<method>PayNow)-linked account ending (?P<account>\d+) on (?P<datetime_str>.+?)\."),
+                "regex": re.compile(r"You have received SGD (?P<amount>[\d\.,]+) in your (?P<method>PayNow)-linked account ending (?P<account>\d+) on (?P<datetime_str>.+?)\."),
                 "sign": 1
             },
             {
-                "regex": re.compile(r"A transaction of SGD (?P<amount>[\d\.]+) was made with your UOB (?P<method>Card) ending (?P<account>\d+) on (?P<date_str>.+?) at (?P<recipient>.+?)\. If unauthorised"),
+                "regex": re.compile(r"A transaction of SGD (?P<amount>[\d\.,]+) was made with your UOB (?P<method>Card) ending (?P<account>\d+) on (?P<date_str>.+?) at (?P<recipient>.+?)\. If unauthorised"),
                 "sign": -1
             }
         ]
@@ -62,7 +62,7 @@ class UOBParser(BaseBankParser):
 
                 # Amount
                 sign = int(pattern["sign"])
-                amount = float(data["amount"]) * sign
+                amount = float(data["amount"].replace(',', '')) * sign
                 
                 # Description
                 description = data.get("recipient") or "Unknown"
