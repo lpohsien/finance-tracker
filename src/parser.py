@@ -70,10 +70,10 @@ class TransactionParser:
 
         # Ensure bank field is correct (especially if LLM parsed it as generic)
         if parsed_data.bank == "LLM" or not parsed_data.bank:
-             parsed_data.bank = bank_name
+            parsed_data.bank = bank_name
         elif parsed_data.bank != bank_name:
-             logger.warning(f"Parsed bank {parsed_data.bank} differs from shortcut bank {bank_name}. Using parser's value if valid, or shortcut's.")
-             return None, f"Bank name mismatch: parsed '{parsed_data.bank}' vs shortcut '{bank_name}'"
+            logger.warning(f"Parsed bank {parsed_data.bank} differs from shortcut bank {bank_name}. Using parser's value if valid, or shortcut's.")
+            return None, f"Bank name mismatch: parsed '{parsed_data.bank}' vs shortcut '{bank_name}'"
 
         try:
             date_parser.isoparse(parsed_data.timestamp)
