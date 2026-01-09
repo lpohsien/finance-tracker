@@ -17,11 +17,13 @@ class TransactionData:
 
     def __post_init__(self):
         # Validate timestamp
-        if self.timestamp:
-            try:
-                date_parser.isoparse(self.timestamp)
-            except Exception:
-                 raise ValueError(f"Invalid timestamp format: {self.timestamp}")
+        if self.timestamp is not None:
+            ts = self.timestamp.strip()
+            if ts:
+                try:
+                    date_parser.isoparse(ts)
+                except Exception:
+                    raise ValueError(f"Invalid timestamp format: {self.timestamp}")
 
         # Validate amount
         if not isinstance(self.amount, (int, float)):
