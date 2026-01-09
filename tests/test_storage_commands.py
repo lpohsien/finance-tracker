@@ -94,7 +94,5 @@ class TestStorageManagerCommands(unittest.TestCase):
 
         # Clean up temp file
         Path(temp_path).unlink()
-    
-
 if __name__ == '__main__':
     unittest.main()
