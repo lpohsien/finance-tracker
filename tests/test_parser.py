@@ -62,12 +62,5 @@ def test_parse_card_transaction(parser):
 def test_ignore_message(parser):
     msg = "We’ve enhanced your UOB One Debit Card! ...,UOB,2025-12-28T15:57:31+08:00, Ignored"
     result, error = parser.parse_message(msg)
-    # The parser might return None, "..." or raise an error depending on strictness
-    # Based on code: it calls parser.rule_parse, returns None, then calls llm_parse.
-    # llm_parse is not mocked here so it might fail or print error.
-    # However, since we provided "UOB", it will try UOBParser.
-    # UOBParser.rule_parse will return None.
-    # Then it goes to LLM fallback.
-    # Since no API key, LLM will likely fail or return None.
-    # result should be None eventually if LLM fails.
+    # Parser should ignore non-transactional messages and return None.
     assert result is None
