@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from dataclasses import fields
 import tempfile
-from typing import List, Dict, Any, Union
+from typing import List, Dict, Any
 from src.config import TRANSACTIONS_DIR, DEFAULT_BUDGETS, BIG_TICKET_THRESHOLD, DEFAULT_CATEGORIES
 from src.models import TransactionData
 
