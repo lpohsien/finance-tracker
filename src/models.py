@@ -32,4 +32,3 @@ class TransactionData:
 
     def to_dict(self):
         return asdict(self)
-    
