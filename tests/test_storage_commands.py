@@ -69,6 +69,7 @@ class TestStorageManagerCommands(unittest.TestCase):
             reader = csv.reader(f)
             header = next(reader)
             self.assertEqual(header, FIELDNAMES)
+    
 
 if __name__ == '__main__':
     unittest.main()

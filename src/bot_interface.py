@@ -401,7 +401,7 @@ class FinanceBot:
 
         transactions = self.storage.get_transactions(user_id)
         analytics = AnalyticsEngine(transactions)
-        month_txs = analytics.filter_transactions_by_month(year, month)
+        month_txs = [t.to_dict() for t in analytics.filter_transactions_by_month(year, month)]
         
         if not month_txs:
             await update.message.reply_text(f"No transactions found for {month}/{year}.")

@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field, asdict
-from typing import Optional
+from typing import Any, Dict, Optional
 from dateutil import parser as date_parser
 
 @dataclass
@@ -32,3 +32,4 @@ class TransactionData:
 
     def to_dict(self):
         return asdict(self)
+    
