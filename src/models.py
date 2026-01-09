@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field, asdict
-from typing import Any, Dict, Optional
+from typing import Optional
 from dateutil import parser as date_parser
 
 @dataclass
