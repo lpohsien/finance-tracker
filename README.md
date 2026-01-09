@@ -132,9 +132,39 @@ journalctl -u bot.service -f
 ## Usage
 
 Send a message to the bot in the format:
-`{Bank_Message},{ISO_Timestamp},{Remarks}`
+`{Bank_Message},{Bank_Name},{ISO_Timestamp},{Remarks}`
 
-Commands:
-*   `/start`: Initialize bot.
-*   `/stats`: View all-time statistics.
-*   `/month`: View current month statistics.
+**Example:**
+`You made a...ending 1234...,UOB,2025-12-30T12:00:00+08:00,Lunch`
+
+### Commands
+
+**Basics**
+*   `/start`: Initialize or authorize the bot.
+*   `/help`: Show the user manual.
+
+**Statistics**
+*   `/stats`: View statistics for the current month.
+*   `/stats <year> <month>`: View statistics for a specific month.
+*   `/stats all`: View all-time statistics.
+*   `/daily`: View daily breakdown for the current month.
+*   `/daily <year> <month>`: View daily breakdown for a specific month.
+*   `/export`: Export current month's transactions to CSV.
+*   `/export <year> <month>`: Export specific month's transactions to CSV.
+
+**Budgeting**
+*   `/viewbudget`: View current budgets.
+*   `/setbudget <category> <amount>`: Set a monthly budget for a specific category.
+*   `/setbudget threshold <amount>`: Set the threshold for "Big Ticket" alerts.
+*   `/resetbudget`: Reset all budgets to default values.
+
+**Categories**
+*   `/viewcat`: View all available categories.
+*   `/addcat <cat1>, <cat2>`: Add new categories.
+*   `/deletecat <cat1>, <cat2>`: Delete custom categories (default categories cannot be deleted).
+*   `/resetcat`: Reset categories to the default list.
+
+**Transactions**
+*   Simply forward or paste your bank transaction message in the required format to log it.
+*   `/delete <id>`: Permanently delete a transaction by its ID.
+*   `/clear`: Permanently delete **ALL** transactions (Use with caution!).

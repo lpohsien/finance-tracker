@@ -14,13 +14,18 @@ class TestAnalyticsAccount(unittest.TestCase):
         analytics = AnalyticsEngine(transactions)
         breakdown = analytics.get_account_breakdown()
         
-        self.assertIn("UOB 1234", breakdown)
-        self.assertIn("DBS 5678", breakdown)
+        self.assertIn("UOB 1234 (Unknown)", breakdown)
+        self.assertIn("DBS 5678 (Unknown)", breakdown)
         
-        # UOB 1234: -100 - 20 + 50 = -70
-        self.assertEqual(breakdown["UOB 1234"], -70.0)
-        # DBS 5678: -50
-        self.assertEqual(breakdown["DBS 5678"], -50.0)
+        # Keys in analytics are f"{bank} {account} ({type})"
+        # For the test data:
+        # 1. bank=UOB, account=1234, type missing -> type="Unknown"
+        # 2. bank=DBS, account=5678, type missing -> type="Unknown"
+
+        # UOB 1234 (Unknown): -100 - 20 + 50 = -70
+        self.assertEqual(breakdown["UOB 1234 (Unknown)"], -70.0)
+        # DBS 5678 (Unknown): -50
+        self.assertEqual(breakdown["DBS 5678 (Unknown)"], -50.0)
 
 if __name__ == '__main__':
     unittest.main()

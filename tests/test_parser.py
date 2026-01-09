@@ -6,40 +6,41 @@ def parser():
     return TransactionParser()
 
 def test_parse_paynow_outgoing(parser):
-    msg = "You made a PayNow transfer of SGD 19.36 to PAYNOW - SUPPORTED B (UEN ending C002) on your a/c ending 1234 at 1:44PM SGT, 27 Dec 25. If unauthorised, call UOB 24/7 Fraud Hotline.,2025-12-28T15:57:31+08:00, Lunch with friends"
-    result = parser.parse_message(msg)
+    msg = "You made a PayNow transfer of SGD 19.36 to PAYNOW - SUPPORTED B (UEN ending C002) on your a/c ending 1234 at 1:44PM SGT, 27 Dec 25. If unauthorised, call UOB 24/7 Fraud Hotline.,UOB,2025-12-28T15:57:31+08:00, Lunch with friends"
+    result, _ = parser.parse_message(msg)
     
     assert result is not None
-    assert result["type"] == "PayNow Outgoing"
+    assert result["type"] == "PayNow"  # Updated to match UOBParser output
     assert result["amount"] == -19.36
     assert result["account"] == "1234"
     assert "PAYNOW - SUPPORTED B (UEN ending C002)" in result["description"]
-    assert result["remarks"] == "Lunch with friends"
+    # remarks is merged into description in TransactionParser, not returned as a separate key
+    assert "Lunch with friends" in result["description"]
     # Check date parsing logic - should prioritize bank msg
     # 27 Dec 25 1:44PM -> 2025-12-27 13:44:00
     assert "2025-12-27T13:44:00" in result["timestamp"]
 def test_parse_paynow_incoming(parser):
-    msg = "You have received SGD 18.62 in your PayNow-linked account ending 5678 on 07-MAY-2025 01:42AM.,2025-12-28T15:57:31+08:00, Refund"
-    result = parser.parse_message(msg)
+    msg = "You have received SGD 18.62 in your PayNow-linked account ending 5678 on 07-MAY-2025 01:42AM.,UOB,2025-12-28T15:57:31+08:00, Refund"
+    result, _ = parser.parse_message(msg)
     
     assert result is not None
-    assert result["type"] == "PayNow Incoming"
+    assert result["type"] == "PayNow" # Updated to match UOBParser output
     assert result["amount"] == 18.62
     assert result["account"] == "5678"
-    assert result["remarks"] == "Refund"
+    assert "Refund" in result["description"]
     # 07-MAY-2025 01:42AM -> 2025-05-07 01:42:00
     assert "2025-05-07T01:42:00" in result["timestamp"]
 
 def test_parse_card_transaction(parser):
-    msg = "A transaction of SGD 15.00 was made with your UOB Card ending 9012 on 26/12/25 at JINJJA CHICKEN @ JEWEL. If unauthorised, call 24/7 Fraud Hotline now,2025-12-28T15:57:31+08:00, Dinner"
-    result = parser.parse_message(msg)
+    msg = "A transaction of SGD 15.00 was made with your UOB Card ending 9012 on 26/12/25 at JINJJA CHICKEN @ JEWEL. If unauthorised, call 24/7 Fraud Hotline now,UOB,2025-12-28T15:57:31+08:00, Dinner"
+    result, _ = parser.parse_message(msg)
     
     assert result is not None
-    assert result["type"] == "Card Transaction"
+    assert result["type"] == "Card" # Updated to match UOBParser output
     assert result["amount"] == -15.00
     assert result["account"] == "9012"
     assert "JINJJA CHICKEN" in result["description"]
-    assert result["remarks"] == "Dinner"
+    assert "Dinner" in result["description"]
     # Card transaction only has date in bank msg, so it might use shortcut timestamp or combine
     # Implementation uses shortcut timestamp if bank msg fails to provide full datetime or if logic dictates
     # In parser.py, if bank msg has date but no time, we might want to use shortcut time?
@@ -59,6 +60,14 @@ def test_parse_card_transaction(parser):
     assert "2025-12-26" in result["timestamp"] or "2025-12-28" in result["timestamp"]
 
 def test_ignore_message(parser):
-    msg = "We’ve enhanced your UOB One Debit Card! ...,2025-12-28T15:57:31+08:00, Ignored"
-    result = parser.parse_message(msg)
+    msg = "We’ve enhanced your UOB One Debit Card! ...,UOB,2025-12-28T15:57:31+08:00, Ignored"
+    result, error = parser.parse_message(msg)
+    # The parser might return None, "..." or raise an error depending on strictness
+    # Based on code: it calls parser.rule_parse, returns None, then calls llm_parse.
+    # llm_parse is not mocked here so it might fail or print error.
+    # However, since we provided "UOB", it will try UOBParser.
+    # UOBParser.rule_parse will return None.
+    # Then it goes to LLM fallback.
+    # Since no API key, LLM will likely fail or return None.
+    # result should be None eventually if LLM fails.
     assert result is None
