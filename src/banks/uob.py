@@ -3,6 +3,7 @@ from typing import Optional, Dict, Any
 from dateutil import parser as date_parser
 from dateutil import tz
 from .base import BaseBankParser
+from src.models import TransactionData
 
 class UOBParser(BaseBankParser):
     def __init__(self):
@@ -45,7 +46,7 @@ class UOBParser(BaseBankParser):
             if type not in self.transaction_types:
                 raise ValueError(f"Unknown transaction type mapping: {type}")
 
-    def rule_parse(self, text: str) -> Optional[Dict[str, Any]]:
+    def rule_parse(self, text: str) -> Optional[TransactionData]:
         for pattern in self.patterns:
             match = pattern["regex"].search(text)
             if match:
@@ -82,11 +83,12 @@ class UOBParser(BaseBankParser):
                     except Exception:
                         pass
                 
-                return {
-                    "type": std_type,
-                    "amount": amount,
-                    "description": description,
-                    "account": str(data.get("account")),
-                    "timestamp": timestamp
-                }
+                return TransactionData(
+                    type=std_type,
+                    amount=amount,
+                    description=description,
+                    account=str(data.get("account")),
+                    timestamp=timestamp,
+                    bank="UOB"
+                )
         return None

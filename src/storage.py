@@ -2,8 +2,9 @@ import csv
 import logging
 import json
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 from src.config import TRANSACTIONS_DIR, DEFAULT_BUDGETS, BIG_TICKET_THRESHOLD, DEFAULT_CATEGORIES
+from src.models import TransactionData
 
 logger = logging.getLogger(__name__)
 
@@ -112,14 +113,24 @@ class StorageManager:
         config = self.get_user_config(user_id)
         return config.get("categories", DEFAULT_CATEGORIES.copy())
 
-    def save_transaction(self, transaction: Dict[str, Any], user_id: int):
+    def save_transaction(self, transaction: Union[Dict[str, Any], TransactionData], user_id: int):
         try:
             filepath = self.file_path_root / str(user_id) / "transactions.csv"
             self._ensure_file_exists(filepath)
+
+            if isinstance(transaction, TransactionData):
+                transaction_dict = transaction.to_dict()
+                # Remove extra fields not in CSV if necessary, or just rely on DictWriter ignoring extras
+                # but DictWriter raises ValueError if extra fields present if extrasaction='raise' (default).
+                # We should filter to match FIELDNAMES
+                row = {k: transaction_dict.get(k) for k in FIELDNAMES}
+            else:
+                row = {k: transaction.get(k) for k in FIELDNAMES}
+
             with open(filepath, 'a', newline='', encoding='utf-8') as f:
                 writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
-                writer.writerow(transaction)
-            logger.info(f"Transaction saved: {transaction.get('id')}")
+                writer.writerow(row)
+            logger.info(f"Transaction saved: {row.get('id')}")
         except Exception as e:
             logger.error(f"Failed to save transaction: {e}")
             raise
