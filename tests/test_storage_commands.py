@@ -2,6 +2,7 @@ import unittest
 import tempfile
 import shutil
 import csv
+import copy
 from pathlib import Path
 from src.storage import StorageManager, FIELDNAMES
 from src.models import TransactionData
@@ -45,8 +46,6 @@ class TestStorageManagerCommands(unittest.TestCase):
         self.assertFalse(result)
 
     def test_delete_all_transactions(self):
-        # Add another transaction
-        import copy
         tx2 = copy.deepcopy(self.transaction)
         tx2.id = "test-id-2"
         self.storage.save_transaction(tx2, self.user_id)

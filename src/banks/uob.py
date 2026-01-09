@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 import re
 from typing import Optional
 import uuid
@@ -6,6 +7,8 @@ from dateutil import parser as date_parser
 from dateutil import tz
 from .base import BaseBankParser
 from src.models import TransactionData
+
+logger = logging.getLogger(__name__)
 
 class UOBParser(BaseBankParser):
     def __init__(self):
@@ -87,7 +90,8 @@ class UOBParser(BaseBankParser):
                         tzinfos = {"SGT": tz.gettz("Asia/Singapore")}
                         timestamp = date_parser.parse(dt_str, fuzzy=True, tzinfos=tzinfos, dayfirst=True).isoformat()
                     except Exception:
-                        pass
+                        logger.error(f"Failed to parse datetime_str: {data['datetime_str']}")
+                        return None
                 elif data.get("date_str"):
                     try:
                         dt_str = data["date_str"]
@@ -96,6 +100,7 @@ class UOBParser(BaseBankParser):
                         timestamp = timestamp_raw.astimezone(tz.gettz("Asia/Singapore")).isoformat()
                         status = self.TIME_PARSE_WARNING + ": Time info missing, used date only"
                     except Exception:
+                        logger.error(f"Failed to parse date_str: {data['date_str']}")
                         pass
                 
                 return TransactionData(
