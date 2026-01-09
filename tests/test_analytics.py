@@ -1,13 +1,14 @@
 import pytest
 from src.analytics import AnalyticsEngine
+from src.models import TransactionData
 
 @pytest.fixture
 def sample_transactions():
     return [
-        {"timestamp": "2025-12-27T13:44:00", "type": "PayNow Outgoing", "amount": -20.0, "category": "Food"},
-        {"timestamp": "2025-12-28T10:00:00", "type": "PayNow Incoming", "amount": 100.0, "category": "Income"},
-        {"timestamp": "2025-12-28T18:00:00", "type": "Card Transaction", "amount": -50.0, "category": "Shopping"},
-        {"timestamp": "2025-12-29T12:00:00", "type": "PayNow Outgoing", "amount": -150.0, "category": "Food"}, # Big ticket
+        TransactionData(timestamp="2025-12-27T13:44:00", type="PayNow Outgoing", amount=-20.0, category="Food", bank="Test", description=""),
+        TransactionData(timestamp="2025-12-28T10:00:00", type="PayNow Incoming", amount=100.0, category="Income", bank="Test", description=""),
+        TransactionData(timestamp="2025-12-28T18:00:00", type="Card Transaction", amount=-50.0, category="Shopping", bank="Test", description=""),
+        TransactionData(timestamp="2025-12-29T12:00:00", type="PayNow Outgoing", amount=-150.0, category="Food", bank="Test", description=""), # Big ticket
     ]
 
 def test_total_income_expense(sample_transactions):
@@ -27,7 +28,7 @@ def test_big_ticket_expenses(sample_transactions):
     analytics = AnalyticsEngine(sample_transactions)
     big_tickets = analytics.get_big_ticket_expenses(threshold=100.0)
     assert len(big_tickets) == 1
-    assert big_tickets[0]["amount"] == -150.0
+    assert big_tickets[0].amount == -150.0
 
 def test_budget_alerts(sample_transactions):
     # Mock budget in config or pass it?

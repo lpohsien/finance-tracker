@@ -3,7 +3,7 @@ import logging
 import uuid
 from datetime import datetime
 from dateutil import parser as date_parser
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Optional, Tuple
 from src.llm_helper import categorize_transaction
 from src.banks import UOBParser
 from src.models import TransactionData
