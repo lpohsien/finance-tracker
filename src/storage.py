@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 
 FIELDNAMES = ["id", "timestamp", "bank", "type", "amount", "description", "account", "category", "raw_message", "status"]
 
+assert set(FIELDNAMES) == {f.name for f in fields(TransactionData)}, "FIELDNAMES must match TransactionData fields"
+
 class StorageManager:
     def __init__(self, file_path: Path = TRANSACTIONS_DIR):
         self.file_path_root = file_path
@@ -120,19 +122,12 @@ class StorageManager:
             filepath = self.file_path_root / str(user_id) / "transactions.csv"
             self._ensure_file_exists(filepath)
 
-            if isinstance(transaction, TransactionData):
-                transaction_dict = transaction.to_dict()
-                # Remove extra fields not in CSV if necessary, or just rely on DictWriter ignoring extras
-                # but DictWriter raises ValueError if extra fields present if extrasaction='raise' (default).
-                # We should filter to match FIELDNAMES
-                row = {k: transaction_dict.get(k) for k in FIELDNAMES}
-            else:
-                row = {k: transaction.get(k) for k in FIELDNAMES}
+            transaction_dict = transaction.to_dict()
 
             with open(filepath, 'a', newline='', encoding='utf-8') as f:
                 writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
-                writer.writerow(row)
-            logger.info(f"Transaction saved: {row.get('id')}")
+                writer.writerow(transaction_dict)
+            logger.info(f"Transaction saved: {transaction_dict.get('id')}")
         except Exception as e:
             logger.error(f"Failed to save transaction: {e}")
             raise
