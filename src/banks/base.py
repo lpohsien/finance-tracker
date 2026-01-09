@@ -59,6 +59,7 @@ class BaseBankParser(ABC):
                     dt = date_parser.isoparse(parsed_dict["timestamp"])
                     timestamp = dt.isoformat()
                 except Exception:
+                    # If timestamp parsing fails, silently fall back to the pre-set default timestamp.
                     pass
             else:
                 parsed_dict["timestamp"] = timestamp
