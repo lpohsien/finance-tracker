@@ -1,8 +1,14 @@
+from datetime import datetime
+import logging
 import re
-from typing import Optional, Dict, Any
+from typing import Optional
+import uuid
 from dateutil import parser as date_parser
 from dateutil import tz
 from .base import BaseBankParser
+from src.models import TransactionData
+
+logger = logging.getLogger(__name__)
 
 class UOBParser(BaseBankParser):
     def __init__(self):
@@ -45,11 +51,14 @@ class UOBParser(BaseBankParser):
             if type not in self.transaction_types:
                 raise ValueError(f"Unknown transaction type mapping: {type}")
 
-    def rule_parse(self, text: str) -> Optional[Dict[str, Any]]:
+    def rule_parse(self, text: str) -> Optional[TransactionData]:
         for pattern in self.patterns:
             match = pattern["regex"].search(text)
             if match:
                 data = match.groupdict()
+
+                # transaction id
+                transaction_id = str(uuid.uuid5(uuid.NAMESPACE_OID, f"{datetime.now()}|{text}"))
                 
                 # Determine raw type
                 raw_type: str = data.get("method")
@@ -73,20 +82,35 @@ class UOBParser(BaseBankParser):
                 description = data.get("recipient") or "Unknown"
                 
                 # Timestamp parsing
-                timestamp = None
+                status = None
+                timestamp = datetime.now(tz=tz.gettz("Asia/Singapore")).isoformat()
                 if data.get("datetime_str"):
                     try:
                         dt_str = data["datetime_str"].replace(" at ", " ")
                         tzinfos = {"SGT": tz.gettz("Asia/Singapore")}
-                        timestamp = date_parser.parse(dt_str, fuzzy=True, tzinfos=tzinfos).isoformat()
+                        timestamp = date_parser.parse(dt_str, fuzzy=True, tzinfos=tzinfos, dayfirst=True).isoformat()
                     except Exception:
+                        logger.error(f"Failed to parse datetime_str: {data['datetime_str']}")
+                        return None
+                elif data.get("date_str"):
+                    try:
+                        dt_str = data["date_str"]
+                        tzinfos = {"SGT": tz.gettz("Asia/Singapore")}
+                        timestamp_raw = date_parser.parse(dt_str, fuzzy=True, tzinfos=tzinfos, dayfirst=True)
+                        timestamp = timestamp_raw.astimezone(tz.gettz("Asia/Singapore")).isoformat()
+                        status = self.TIME_PARSE_WARNING + ": Time info missing, used date only"
+                    except Exception:
+                        logger.error(f"Failed to parse date_str: {data['date_str']}")
                         pass
                 
-                return {
-                    "type": std_type,
-                    "amount": amount,
-                    "description": description,
-                    "account": str(data.get("account")),
-                    "timestamp": timestamp
-                }
+                return TransactionData(
+                    id=transaction_id,
+                    type=std_type,
+                    amount=amount,
+                    description=description,
+                    account=str(data.get("account")),
+                    timestamp=timestamp,
+                    bank="UOB",
+                    status=status
+                )
         return None

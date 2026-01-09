@@ -74,18 +74,19 @@ class FinanceBot:
 
             alerts = analytics.check_budget_alerts(month_txs, budgets)
             
-            if parsed_data['type'] != 'Income' and abs(parsed_data['amount']) >= big_ticket_threshold:
-                 alerts.append(f"🔥 Big Ticket Alert: SGD {abs(parsed_data['amount']):.2f} >= SGD {big_ticket_threshold:.2f}")
+            # Access attributes of TransactionData
+            if parsed_data.type != 'Income' and abs(parsed_data.amount) >= big_ticket_threshold:
+                alerts.append(f"🔥 Big Ticket Alert: SGD {abs(parsed_data.amount):.2f} >= SGD {big_ticket_threshold:.2f}")
 
             response = (
                 f"✅ Transaction Saved!\n"
-                f"<b>ID</b>: <code>{parsed_data['id']}</code>\n"
-                f"<b>Bank</b>: {parsed_data['bank']}\n"
-                f"<b>Type</b>: {parsed_data['type']}\n"
-                f"<b>Time</b>: {datetime.fromisoformat(parsed_data['timestamp']).strftime('%y/%m/%d %H:%M')}\n"
-                f"<b>Amount</b>: SGD {parsed_data['amount']:.2f}\n"
-                f"<b>Category</b>: {parsed_data['category']}\n"
-                f"<b>Description</b>: <blockquote expandable>{parsed_data['description']}</blockquote>\n"
+                f"<b>ID</b>: <code>{parsed_data.id}</code>\n"
+                f"<b>Bank</b>: {parsed_data.bank}\n"
+                f"<b>Type</b>: {parsed_data.type}\n"
+                f"<b>Time</b>: {datetime.fromisoformat(parsed_data.timestamp).strftime('%y/%m/%d %H:%M')}\n"
+                f"<b>Amount</b>: SGD {parsed_data.amount:.2f}\n"
+                f"<b>Category</b>: {parsed_data.category}\n"
+                f"<b>Description</b>: <blockquote expandable>{parsed_data.description}</blockquote>\n"
             )
             
             if alerts:
@@ -406,15 +407,11 @@ class FinanceBot:
             await update.message.reply_text(f"No transactions found for {month}/{year}.")
             return
 
-        # Create a temporary CSV file
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
-            writer.writeheader()
-            writer.writerows(month_txs)
-            temp_path = f.name
+        temp_path = self.storage.export_transactions(month_txs)
             
         try:
-            await update.message.reply_document(document=open(temp_path, 'rb'), filename=f"transactions_{year}_{month}.csv")
+            with open(temp_path, 'rb') as f:
+                await update.message.reply_document(document=f, filename=f"transactions_{year}_{month}.csv")
         except Exception as e:
             logger.error(f"Failed to send export: {e}")
             await update.message.reply_text("❌ Failed to send export file.")

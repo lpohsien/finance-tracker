@@ -3,9 +3,10 @@ import logging
 import uuid
 from datetime import datetime
 from dateutil import parser as date_parser
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Optional, Tuple
 from src.llm_helper import categorize_transaction
 from src.banks import UOBParser
+from src.models import TransactionData
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ class TransactionParser:
             "UOB": UOBParser(),
         }
 
-    def parse_message(self, full_message: str, categories_list: Optional[List] = None) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    def parse_message(self, full_message: str, categories_list: Optional[List] = None) -> Tuple[Optional[TransactionData], Optional[str]]:
         """
         Parses the composite message from Apple Shortcuts.
         Format: "{Bank_Msg},{bank},{ISO_Timestamp},{Remarks}"
@@ -55,15 +56,29 @@ class TransactionParser:
             
             # Append to status that LLM was used
             status = "⚠️ Used LLM parsing. Verify details."
+        
+        if parsed_data.status and parser.TIME_PARSE_WARNING in parsed_data.status:
+            # use shortcut_timestamp_str if the parser time and shortcut time is within the same day, else keep parser status
+            try:
+                parser_time = date_parser.isoparse(parsed_data.timestamp)
+                shortcut_time = date_parser.isoparse(shortcut_timestamp_str)
+                if parser_time.date() == shortcut_time.date():
+                    parsed_data.timestamp = shortcut_timestamp_str
+            except Exception as e:
+                logger.error(f"Failed to compare timestamps: {e}")
+                # keep existing status
 
-        final_timestamp = parsed_data.get("timestamp")
-        if not final_timestamp or not isinstance(final_timestamp, str):
-            final_timestamp = shortcut_timestamp_str
+        # Ensure bank field is correct (especially if LLM parsed it as generic)
+        if parsed_data.bank == "LLM" or not parsed_data.bank:
+            parsed_data.bank = bank_name
+        elif parsed_data.bank != bank_name:
+            logger.warning(f"Parsed bank {parsed_data.bank} differs from shortcut bank {bank_name}. Using parser's value if valid, or shortcut's.")
+            return None, f"Bank name mismatch: parsed '{parsed_data.bank}' vs shortcut '{bank_name}'"
 
         try:
-            date_parser.isoparse(final_timestamp)
+            date_parser.isoparse(parsed_data.timestamp)
         except Exception as e:
-            logger.error(f"Failed to parse shortcut timestamp '{final_timestamp}': {e}")
+            logger.error(f"Failed to parse shortcut timestamp '{parsed_data.timestamp}': {e}")
             return None, "Invalid timestamp format"
 
         # Categorization
@@ -71,28 +86,24 @@ class TransactionParser:
 
         # Description
         description = f"{remarks}" if remarks else ""
-        description += f" [{parsed_data.get('description')}]"
+        description += f" [{parsed_data.description}]"
 
-        # Generate UUID
-        # We use the final timestamp and the raw message to ensure uniqueness and determinism
-        transaction_id = str(uuid.uuid5(uuid.NAMESPACE_OID, f"{datetime.now()}|{full_message}"))
+        # Update TransactionData
+        parsed_data.description = description
+        parsed_data.category = category
+        parsed_data.raw_message = full_message
 
-        # Construct result
-        return {
-            "id": transaction_id,
-            "timestamp": final_timestamp,
-            "bank": bank_name,
-            "type": parsed_data["type"],
-            "amount": parsed_data["amount"],
-            "description": description,
-            "account": parsed_data.get("account"),
-            "category": category,
-            "raw_message": full_message
-        }, status
+        if status:
+            if parsed_data.status:
+                parsed_data.status += " | " + status  # Assigning status to the object as requested
+            else:
+                parsed_data.status = status
 
-    def _categorize(self, parsed_data: Dict[str, Any], remarks: str, full_message: str, categories_list: Optional[List[str]] = None) -> str:
+        return parsed_data, status
+
+    def _categorize(self, parsed_data: TransactionData, remarks: str, full_message: str, categories_list: Optional[List[str]] = None) -> str:
         # 1. Keyword based (Simple)
-        description = parsed_data.get("description") or ""
+        description = parsed_data.description or ""
         text_to_check = (description + " " + remarks).lower()
 
         if categories_list:

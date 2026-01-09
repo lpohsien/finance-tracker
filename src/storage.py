@@ -2,12 +2,17 @@ import csv
 import logging
 import json
 from pathlib import Path
+from dataclasses import fields
+import tempfile
 from typing import List, Dict, Any
 from src.config import TRANSACTIONS_DIR, DEFAULT_BUDGETS, BIG_TICKET_THRESHOLD, DEFAULT_CATEGORIES
+from src.models import TransactionData
 
 logger = logging.getLogger(__name__)
 
-FIELDNAMES = ["id", "timestamp", "bank", "type", "amount", "description", "account", "category", "raw_message"]
+FIELDNAMES = ["id", "timestamp", "bank", "type", "amount", "description", "account", "category", "raw_message", "status"]
+
+assert set(FIELDNAMES) == {f.name for f in fields(TransactionData)}, "FIELDNAMES must match TransactionData fields"
 
 class StorageManager:
     def __init__(self, file_path: Path = TRANSACTIONS_DIR):
@@ -112,19 +117,22 @@ class StorageManager:
         config = self.get_user_config(user_id)
         return config.get("categories", DEFAULT_CATEGORIES.copy())
 
-    def save_transaction(self, transaction: Dict[str, Any], user_id: int):
+    def save_transaction(self, transaction: TransactionData, user_id: int):
         try:
             filepath = self.file_path_root / str(user_id) / "transactions.csv"
             self._ensure_file_exists(filepath)
+
+            transaction_dict = transaction.to_dict()
+
             with open(filepath, 'a', newline='', encoding='utf-8') as f:
                 writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
-                writer.writerow(transaction)
-            logger.info(f"Transaction saved: {transaction.get('id')}")
+                writer.writerow(transaction_dict)
+            logger.info(f"Transaction saved: {transaction_dict.get('id')}")
         except Exception as e:
             logger.error(f"Failed to save transaction: {e}")
             raise
 
-    def get_transactions(self, user_id: int) -> List[Dict[str, Any]]:
+    def get_transactions(self, user_id: int) -> List[TransactionData]:
         transactions = []
         filepath = self.file_path_root / str(user_id) / "transactions.csv"
         if not filepath.exists():
@@ -133,11 +141,22 @@ class StorageManager:
         try:
             with open(filepath, 'r', newline='', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
+                valid_fields = {f.name for f in fields(TransactionData)}
                 for row in reader:
-                    # Convert amount to float
-                    if "amount" in row:
-                        row["amount"] = float(row["amount"])
-                    transactions.append(row)
+                    # Filter keys and strict validation
+                    data = {k: v for k, v in row.items() if k in valid_fields}
+
+                    # Ensure numeric fields are correctly typed before constructing TransactionData
+                    if "amount" in data and data["amount"] not in (None, ""):
+                        try:
+                            data["amount"] = float(data["amount"])
+                        except (TypeError, ValueError):
+                            logger.warning(f"Skipping transaction with non-numeric amount: {row}")
+                            continue
+                    try:
+                        transactions.append(TransactionData(**data))
+                    except (TypeError, ValueError) as e:
+                        logger.warning(f"Skipping invalid transaction row: {row} - {e}")
         except Exception as e:
             logger.error(f"Failed to read transactions: {e}")
         
@@ -185,3 +204,13 @@ class StorageManager:
         except Exception as e:
             logger.error(f"Failed to delete all transactions: {e}")
             return False
+        
+    def export_transactions(self, transactions: List[TransactionData]) -> str:
+        # Create a temporary CSV file
+        transactions_list = [t.to_dict() for t in transactions]
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
+            writer.writeheader()
+            writer.writerows(transactions_list)
+            temp_path = f.name
+        return temp_path
