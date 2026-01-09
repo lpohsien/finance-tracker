@@ -76,7 +76,7 @@ class FinanceBot:
             
             # Access attributes of TransactionData
             if parsed_data.type != 'Income' and abs(parsed_data.amount) >= big_ticket_threshold:
-                 alerts.append(f"🔥 Big Ticket Alert: SGD {abs(parsed_data.amount):.2f} >= SGD {big_ticket_threshold:.2f}")
+                alerts.append(f"🔥 Big Ticket Alert: SGD {abs(parsed_data.amount):.2f} >= SGD {big_ticket_threshold:.2f}")
 
             response = (
                 f"✅ Transaction Saved!\n"
