@@ -95,6 +95,7 @@ def test_parser_integration(mock_llm_parse):
         assert "NTUC FairPrice" in result['description']
     else:
         print(f"Parser Error: {error}")
+        assert result is not None, f"Parser failed: {error}"
 
 @patch('src.llm_helper.llm_parse_bank_message')
 def test_rule_vs_llm_consistency(mock_llm_parse):
