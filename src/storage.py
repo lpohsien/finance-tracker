@@ -150,6 +150,14 @@ class StorageManager:
                 for row in reader:
                     # Filter keys and strict validation
                     data = {k: v for k, v in row.items() if k in valid_fields}
+
+                    # Ensure numeric fields are correctly typed before constructing TransactionData
+                    if "amount" in data and data["amount"] not in (None, ""):
+                        try:
+                            data["amount"] = float(data["amount"])
+                        except (TypeError, ValueError):
+                            logger.warning(f"Skipping transaction with non-numeric amount: {row}")
+                            continue
                     try:
                         transactions.append(TransactionData(**data))
                     except (TypeError, ValueError) as e:
