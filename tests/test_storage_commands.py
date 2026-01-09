@@ -18,7 +18,6 @@ class TestStorageManagerCommands(unittest.TestCase):
             "description": "Test Transaction",
             "account": "1234",
             "category": "Food",
-            "remarks": "Lunch",
             "raw_message": "raw"
         }
         self.storage.save_transaction(self.transaction, self.user_id)
