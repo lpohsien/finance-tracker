@@ -24,7 +24,7 @@ class TransactionParser:
         # Regex to find the ISO timestamp in the middle
         # 2025-12-28T15:57:31+08:00
         status = None
-        split_pattern = re.compile(r"(.*),(\w+),(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}),(.*)", re.DOTALL)
+        split_pattern = re.compile(r"(.*),(\w+),(.*),(.*)", re.DOTALL)
         match = split_pattern.match(full_message)
         
         if not match:
@@ -61,6 +61,7 @@ class TransactionParser:
             final_timestamp = shortcut_timestamp_str
 
         try:
+            final_timestamp = date_parser.parse(final_timestamp, fuzzy=True).isoformat()
             date_parser.isoparse(final_timestamp)
         except Exception as e:
             logger.error(f"Failed to parse shortcut timestamp '{final_timestamp}': {e}")
