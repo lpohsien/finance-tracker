@@ -401,18 +401,13 @@ class FinanceBot:
 
         transactions = self.storage.get_transactions(user_id)
         analytics = AnalyticsEngine(transactions)
-        month_txs = [t.to_dict() for t in analytics.filter_transactions_by_month(year, month)]
+        month_txs = analytics.filter_transactions_by_month(year, month)
         
         if not month_txs:
             await update.message.reply_text(f"No transactions found for {month}/{year}.")
             return
 
-        # Create a temporary CSV file
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
-            writer.writeheader()
-            writer.writerows(month_txs)
-            temp_path = f.name
+        temp_path = self.storage.export_transactions(month_txs)
             
         try:
             await update.message.reply_document(document=open(temp_path, 'rb'), filename=f"transactions_{year}_{month}.csv")

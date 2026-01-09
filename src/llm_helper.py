@@ -53,7 +53,7 @@ def categorize_transaction(message: str, categories_list: Optional[List] = None)
         logger.error(f"Error during LLM categorization: {e}")
         return "Uncategorized"
     
-def llm_parse_bank_message(message: str, transaction_type: List[str] = []) -> Tuple[Optional[Dict[str, str|float|None]], Optional[str]]:
+def llm_parse_bank_message(message: str, transaction_type: List[str] = []) -> Tuple[Dict[str, str], Optional[str]]:
     """
     Uses Gemini to parse transaction details from a bank message.
     Returns a dictionary with keys: type, amount, description, account, timestamp
@@ -62,7 +62,7 @@ def llm_parse_bank_message(message: str, transaction_type: List[str] = []) -> Tu
     client = _init_llm_client()
 
     if not client:
-        return None, "LLM client not initialized"
+        return {}, "LLM client not initialized"
 
     prompt = f"""
     You are a financial assistant. Parse the following bank message and extract the following details if it is a transaction:
@@ -91,14 +91,14 @@ def llm_parse_bank_message(message: str, transaction_type: List[str] = []) -> Tu
         logger.info(f"LLM parsing response: {parsed_data}")
 
         if parsed_data.startswith("ERROR:"):
-            return None, parsed_data
+            return {}, parsed_data
 
         import json
         parsed_dict = json.loads(parsed_data)
         if not parsed_dict:
-            return None, "LLM failed to respond with valid data"
+            return {}, "LLM failed to respond with valid data"
         return parsed_dict, None
     
     except Exception as e:
         logger.error(f"Error during LLM parsing: {e}")
-        return None, "LLM parsing error"
+        return {}, "LLM parsing error"

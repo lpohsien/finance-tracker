@@ -5,11 +5,11 @@ from src.models import TransactionData
 class TestAnalyticsAccount(unittest.TestCase):
     def test_get_account_breakdown(self):
         transactions = [
-            TransactionData(amount=-100.0, category="Food", bank="UOB", account="1234", type="Unknown", description=""),
-            TransactionData(amount=-50.0, category="Transport", bank="DBS", account="5678", type="Unknown", description=""),
-            TransactionData(amount=-20.0, category="Food", bank="UOB", account="1234", type="Unknown", description=""),
-            TransactionData(amount=2000.0, category="Salary", bank="UOB", account="1234", type="Unknown", description=""), # Income, should be ignored
-            TransactionData(amount=50.0, category="Disbursement", bank="UOB", account="1234", type="Unknown", description=""), # Disbursement, should be counted as positive expense (reduction)
+            TransactionData(id="1", amount=-100.0, category="Food", bank="UOB", account="1234", type="Unknown", timestamp="2024-01-01T00:00:00Z", description=""),
+            TransactionData(id="2", amount=-50.0, category="Transport", bank="DBS", account="5678", type="Unknown", timestamp="2024-01-01T00:00:00Z", description=""),
+            TransactionData(id="3", amount=-20.0, category="Food", bank="UOB", account="1234", type="Unknown", timestamp="2024-01-01T00:00:00Z", description=""),
+            TransactionData(id="4", amount=2000.0, category="Salary", bank="UOB", account="1234", type="Unknown", timestamp="2024-01-01T00:00:00Z", description=""), # Income, should be ignored
+            TransactionData(id="5", amount=50.0, category="Disbursement", bank="UOB", account="1234", type="Unknown", timestamp="2024-01-01T00:00:00Z", description=""), # Disbursement, should be counted as positive expense (reduction)
         ]
         
         analytics = AnalyticsEngine(transactions)
@@ -30,14 +30,14 @@ class TestAnalyticsAccount(unittest.TestCase):
 
     def test_account_breakdown_with_types(self):
         transactions = [
-            TransactionData(amount=-300.0, category="Shopping", bank="UOB", account="4321", type="Card", description=""),
-            TransactionData(amount=-150.0, category="Shopping", bank="UOB", account="4321", type="Card", description=""),
+            TransactionData(id="6", amount=-300.0, category="Shopping", bank="UOB", account="4321", type="Card", timestamp="2024-01-01T00:00:00Z", description=""),
+            TransactionData(id="7", amount=-150.0, category="Shopping", bank="UOB", account="4321", type="Card", timestamp="2024-01-01T00:00:00Z", description=""),
 
-            TransactionData(amount=-500.0, category="Shopping", bank="UOB", account="4321", type="PayNow", description=""),
-            TransactionData(amount=-100.0, category="Shopping", bank="UOB", account="4321", type="PayNow", description=""),
-
-            TransactionData(amount=-200.0, category="Bills", bank="UOB", account="8765", type="Transfer", description=""),
-            TransactionData(amount=1000.0, category="Disbursement", bank="UOB", account="8765", type="Transfer", description=""), # Disbursement
+            TransactionData(id="8", amount=-500.0, category="Shopping", bank="UOB", account="4321", type="PayNow", timestamp="2024-01-01T00:00:00Z", description=""),
+            TransactionData(id="9", amount=-100.0, category="Shopping", bank="UOB", account="4321", type="PayNow", timestamp="2024-01-01T00:00:00Z", description=""), 
+              
+            TransactionData(id="10", amount=-200.0, category="Bills", bank="UOB", account="8765", type="Transfer", timestamp="2024-01-01T00:00:00Z", description=""),
+            TransactionData(id="11", amount=1000.0, category="Disbursement", bank="UOB", account="8765", type="Transfer", timestamp="2024-01-01T00:00:00Z", description=""), # Disbursement
         ]
         
         analytics = AnalyticsEngine(transactions)

@@ -56,26 +56,29 @@ class TransactionParser:
             
             # Append to status that LLM was used
             status = "⚠️ Used LLM parsing. Verify details."
+        
+        if parsed_data.status and parser.TIME_PARSE_WARNING in parsed_data.status:
+            # use shortcut_timestamp_str if the parser time and shortcut time is within the same day, else keep parser status
+            try:
+                parser_time = date_parser.isoparse(parsed_data.timestamp)
+                shortcut_time = date_parser.isoparse(shortcut_timestamp_str)
+                if parser_time.date() == shortcut_time.date():
+                    parsed_data.timestamp = shortcut_timestamp_str
+            except Exception as e:
+                logger.error(f"Failed to compare timestamps: {e}")
+                # keep existing status
 
         # Ensure bank field is correct (especially if LLM parsed it as generic)
         if parsed_data.bank == "LLM" or not parsed_data.bank:
              parsed_data.bank = bank_name
         elif parsed_data.bank != bank_name:
              logger.warning(f"Parsed bank {parsed_data.bank} differs from shortcut bank {bank_name}. Using parser's value if valid, or shortcut's.")
-             # Actually, we should trust the shortcut's bank name as it selects the parser.
-             # Or we can keep what parser returned.
-             # The user requirement said: "If bank-specific parser like UOBParser is used, the bank field must also be filled (value of “UOB”)."
-             # UOBParser sets it to UOB.
-             pass
-
-        final_timestamp = parsed_data.timestamp
-        if not final_timestamp or not isinstance(final_timestamp, str):
-            final_timestamp = shortcut_timestamp_str
+             return None, f"Bank name mismatch: parsed '{parsed_data.bank}' vs shortcut '{bank_name}'"
 
         try:
-            date_parser.isoparse(final_timestamp)
+            date_parser.isoparse(parsed_data.timestamp)
         except Exception as e:
-            logger.error(f"Failed to parse shortcut timestamp '{final_timestamp}': {e}")
+            logger.error(f"Failed to parse shortcut timestamp '{parsed_data.timestamp}': {e}")
             return None, "Invalid timestamp format"
 
         # Categorization
@@ -85,17 +88,16 @@ class TransactionParser:
         description = f"{remarks}" if remarks else ""
         description += f" [{parsed_data.description}]"
 
-        # Generate UUID
-        # We use the final timestamp and the raw message to ensure uniqueness and determinism
-        transaction_id = str(uuid.uuid5(uuid.NAMESPACE_OID, f"{datetime.now()}|{full_message}"))
-
         # Update TransactionData
-        parsed_data.id = transaction_id
-        parsed_data.timestamp = final_timestamp
         parsed_data.description = description
         parsed_data.category = category
         parsed_data.raw_message = full_message
-        parsed_data.status = status # Assigning status to the object as requested
+
+        if parsed_data.status:
+            if status:
+                parsed_data.status += status # Assigning status to the object as requested
+        else:
+            parsed_data.status = status  
 
         return parsed_data, status
 

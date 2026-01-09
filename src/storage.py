@@ -3,6 +3,7 @@ import logging
 import json
 from pathlib import Path
 from dataclasses import fields
+import tempfile
 from typing import List, Dict, Any, Union
 from src.config import TRANSACTIONS_DIR, DEFAULT_BUDGETS, BIG_TICKET_THRESHOLD, DEFAULT_CATEGORIES
 from src.models import TransactionData
@@ -200,3 +201,13 @@ class StorageManager:
         except Exception as e:
             logger.error(f"Failed to delete all transactions: {e}")
             return False
+        
+    def export_transactions(self, transactions: List[TransactionData]) -> str:
+        # Create a temporary CSV file
+        transactions_list = [t.to_dict() for t in transactions]
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.csv', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=FIELDNAMES)
+            writer.writeheader()
+            writer.writerows(transactions_list)
+            temp_path = f.name
+        return temp_path

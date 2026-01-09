@@ -5,10 +5,10 @@ from src.models import TransactionData
 @pytest.fixture
 def sample_transactions():
     return [
-        TransactionData(timestamp="2025-12-27T13:44:00", type="PayNow Outgoing", amount=-20.0, category="Food", bank="Test", description=""),
-        TransactionData(timestamp="2025-12-28T10:00:00", type="PayNow Incoming", amount=100.0, category="Income", bank="Test", description=""),
-        TransactionData(timestamp="2025-12-28T18:00:00", type="Card Transaction", amount=-50.0, category="Shopping", bank="Test", description=""),
-        TransactionData(timestamp="2025-12-29T12:00:00", type="PayNow Outgoing", amount=-150.0, category="Food", bank="Test", description=""), # Big ticket
+        TransactionData(id="1", timestamp="2025-12-27T13:44:00", type="PayNow Outgoing", amount=-20.0, category="Food", bank="Test", description=""),
+        TransactionData(id="2", timestamp="2025-12-28T10:00:00", type="PayNow Incoming", amount=100.0, category="Income", bank="Test", description=""),
+        TransactionData(id="3", timestamp="2025-12-28T18:00:00", type="Card Transaction", amount=-50.0, category="Shopping", bank="Test", description=""),
+        TransactionData(id="4", timestamp="2025-12-29T12:00:00", type="PayNow Outgoing", amount=-150.0, category="Food", bank="Test", description=""), # Big ticket
     ]
 
 def test_total_income_expense(sample_transactions):

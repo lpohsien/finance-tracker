@@ -8,10 +8,10 @@ class TransactionData:
     amount: float
     description: str
     bank: str
-    id: Optional[str] = None
+    id: str
+    timestamp: str
+    category: Optional[str] = "Uncategorized"
     account: Optional[str] = None
-    timestamp: Optional[str] = None
-    category: Optional[str] = None
     raw_message: Optional[str] = None
     status: Optional[str] = None
 

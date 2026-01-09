@@ -1,8 +1,15 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, Any, Tuple
+from datetime import datetime
+from typing import Optional, Tuple
+from dateutil import tz
+from dateutil import parser as date_parser
+import uuid
 from src.models import TransactionData
 
 class BaseBankParser(ABC):
+
+    TIME_PARSE_WARNING = "TIME_PARSE_WARNING"
+
 
     transaction_types = [
         "Transfer",
@@ -27,6 +34,9 @@ class BaseBankParser(ABC):
         from src.llm_helper import llm_parse_bank_message
         parsed_dict, error = llm_parse_bank_message(text, self.transaction_types)
 
+        # transaction id
+        transaction_id = str(uuid.uuid5(uuid.NAMESPACE_OID, f"{datetime.now()}|{text}"))
+
         if error or not parsed_dict:
             return None, error
 
@@ -42,13 +52,25 @@ class BaseBankParser(ABC):
             # but the model has bank: str.
             # I will set it to "Generic" or "LLM" for now, and let TransactionParser override it.
 
+            timestamp = datetime.now(tz=tz.gettz("Asia/Singapore")).isoformat()
+            if "timestamp" in parsed_dict:
+                try:
+                    # Validate and parse timestamp
+                    dt = date_parser.isoparse(parsed_dict["timestamp"])
+                    timestamp = dt.isoformat()
+                except Exception:
+                    pass
+            else:
+                parsed_dict["timestamp"] = timestamp
+
             data = TransactionData(
+                id=transaction_id,
                 type=parsed_dict.get("type", "Unknown"),
-                amount=parsed_dict.get("amount", 0.0),
+                amount=float(parsed_dict.get("amount", "0.0")),
                 description=parsed_dict.get("description", "Unknown"),
                 bank="LLM", # Temporary, should be updated by caller
-                account=parsed_dict.get("account"),
-                timestamp=parsed_dict.get("timestamp")
+                account=parsed_dict.get("account", "Unknown"),
+                timestamp=timestamp,
             )
             return data, None
         except Exception as e:
