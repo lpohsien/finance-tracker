@@ -27,5 +27,30 @@ class TestAnalyticsAccount(unittest.TestCase):
         # DBS 5678 (Unknown): -50
         self.assertEqual(breakdown["DBS 5678 (Unknown)"], -50.0)
 
+    def test_account_breakdown_with_types(self):
+        transactions = [
+            {"amount": -300.0, "category": "Shopping", "bank": "UOB", "account": "4321", "type": "Card"},
+            {"amount": -150.0, "category": "Shopping", "bank": "UOB", "account": "4321", "type": "Card"},
+
+            {"amount": -500.0, "category": "Shopping", "bank": "UOB", "account": "4321", "type": "PayNow"},
+            {"amount": -100.0, "category": "Shopping", "bank": "UOB", "account": "4321", "type": "PayNow"},
+
+            {"amount": -200.0, "category": "Bills", "bank": "UOB", "account": "8765", "type": "Transfer"},
+            {"amount": 1000.0, "category": "Disbursement", "bank": "UOB", "account": "8765", "type": "Transfer"}, # Disbursement
+        ]
+        
+        analytics = AnalyticsEngine(transactions)
+        breakdown = analytics.get_account_breakdown()
+        
+        self.assertIn("UOB 4321 (Card)", breakdown)
+        self.assertIn("UOB 8765 (Transfer)", breakdown)
+        
+        # UOB 4321 (Card): -300 -150 = -450
+        self.assertEqual(breakdown["UOB 4321 (Card)"], -450.0)
+        # UOB 4321 (PayNow): -500 -100 = -600
+        self.assertEqual(breakdown["UOB 4321 (PayNow)"], -600.0)
+        # UOB 8765 (Transfer): -200 + 1000 = 800
+        self.assertEqual(breakdown["UOB 8765 (Transfer)"], 800.0)
+
 if __name__ == '__main__':
     unittest.main()

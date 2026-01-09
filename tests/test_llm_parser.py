@@ -2,6 +2,12 @@ import logging
 import os
 import sys
 from datetime import datetime
+import pytest
+
+# Do not run test llm by default even if GOOGLE_API_KEY is set, as it may incur costs.
+# To run this test, set the environment variable RUN_LLM_TESTS=1
+if os.getenv("RUN_LLM_TESTS") != "1":
+    pytest.skip("Skipping entire module because of missing condition", allow_module_level=True)
 
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
@@ -121,13 +127,22 @@ def test_rule_vs_llm_consistency():
 
     print("Consistency Check Passed!")
 
+def test_ignore_message(parser):
+    msg = "We’ve enhanced your UOB One Debit Card! ...,UOB,2025-12-28T15:57:31+08:00, Ignored"
+    result, _ = parser.parse_message(msg)
+    # Parser should ignore non-transactional messages and return None.
+    assert result is None
+
 if __name__ == "__main__":
     try:
         test_direct_llm_parse()
         test_parser_integration()
         test_rule_vs_llm_consistency()
+        test_ignore_message(TransactionParser())
         print("\nAll tests passed!")
     except Exception as e:
         print(f"\nTest failed with exception: {e}")
         import traceback
         traceback.print_exc()
+
+
