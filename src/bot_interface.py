@@ -410,7 +410,8 @@ class FinanceBot:
         temp_path = self.storage.export_transactions(month_txs)
             
         try:
-            await update.message.reply_document(document=open(temp_path, 'rb'), filename=f"transactions_{year}_{month}.csv")
+            with open(temp_path, 'rb') as f:
+                await update.message.reply_document(document=f, filename=f"transactions_{year}_{month}.csv")
         except Exception as e:
             logger.error(f"Failed to send export: {e}")
             await update.message.reply_text("❌ Failed to send export file.")
