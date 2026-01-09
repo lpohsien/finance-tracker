@@ -2,6 +2,7 @@ import csv
 import sys
 import shutil
 from pathlib import Path
+from dateutil import parser as date_parser
 
 # Add project root to sys.path
 project_root = Path(__file__).resolve().parent.parent
@@ -65,6 +66,18 @@ def migrate():
                 # Ensure only valid fields + missing fields are handled
                 # row might not have all keys if previous schema was very different
                 # but we know it's missing status.
+
+                # update the timestamp to ensure all are using Asia/Singapore timezone
+                if "timestamp" in row and row["timestamp"]:
+                    try:
+                        dt = date_parser.isoparse(row["timestamp"])
+                        # Convert to Asia/Singapore timezone
+                        from dateutil import tz
+                        sg_tz = tz.gettz("Asia/Singapore")
+                        dt = dt.astimezone(sg_tz)
+                        row["timestamp"] = dt.isoformat()
+                    except Exception as e:
+                        print(f"    Warning: Failed to parse timestamp '{row['timestamp']}': {e}")
                 
                 # Fill default for any other new fields if any (though only status is new here)
                 output_row = {field: row.get(field, "") for field in FIELDNAMES}
