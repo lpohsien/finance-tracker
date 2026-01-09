@@ -93,11 +93,11 @@ class TransactionParser:
         parsed_data.category = category
         parsed_data.raw_message = full_message
 
-        if parsed_data.status:
-            if status:
-                parsed_data.status += status # Assigning status to the object as requested
-        else:
-            parsed_data.status = status  
+        if status:
+            if parsed_data.status:
+                parsed_data.status += " | " + status  # Assigning status to the object as requested
+            else:
+                parsed_data.status = status
 
         return parsed_data, status
 
