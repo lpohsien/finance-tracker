@@ -1,4 +1,5 @@
 import csv
+from copy import deepcopy
 import logging
 import json
 from pathlib import Path
@@ -53,6 +54,8 @@ class StorageManager:
             logger.error(f"Failed to save user config: {e}")
 
     def get_user_config(self, user_id: int) -> Dict[str, Any]:
+        # this function should ensure that the config has all required fields, else migrate
+        # from config.py
         config_path = self._get_config_path(user_id)
         if not config_path.exists():
             self.initialize_user_config(user_id)
@@ -62,16 +65,16 @@ class StorageManager:
                 config = json.load(f)
                 require_update = False
                 if "budgets" not in config:
-                    config["budgets"] = DEFAULT_BUDGETS.copy()
+                    config["budgets"] = deepcopy(DEFAULT_BUDGETS)
                     require_update = True
                 if "big_ticket_threshold" not in config:
                     config["big_ticket_threshold"] = BIG_TICKET_THRESHOLD
                     require_update = True
                 if "categories" not in config:
-                    config["categories"] = DEFAULT_CATEGORIES.copy()
+                    config["categories"] = deepcopy(DEFAULT_CATEGORIES)
                     require_update = True
                 if "keywords" not in config:
-                    config["keywords"] = DEFAULT_KEYWORDS.copy()
+                    config["keywords"] = deepcopy(DEFAULT_KEYWORDS)
                     require_update = True
 
                 # update user config if needed
@@ -82,25 +85,25 @@ class StorageManager:
         except Exception as e:
             logger.error(f"Failed to load user config: {e}")
             return {
-                "budgets": DEFAULT_BUDGETS.copy(), 
+                "budgets": deepcopy(DEFAULT_BUDGETS),
                 "big_ticket_threshold": BIG_TICKET_THRESHOLD,
-                "categories": DEFAULT_CATEGORIES.copy(),
-                "keywords": DEFAULT_KEYWORDS.copy()
+                "categories": deepcopy(DEFAULT_CATEGORIES),
+                "keywords": deepcopy(DEFAULT_KEYWORDS)
             }
 
     def get_user_categories(self, user_id: int) -> List[str]:
         config = self.get_user_config(user_id)
-        return config.get("categories", DEFAULT_CATEGORIES.copy())
+        return config.get("categories", deepcopy(DEFAULT_CATEGORIES))
 
     def get_user_keywords(self, user_id: int) -> Dict[str, List[str]]:
         config = self.get_user_config(user_id)
-        # get_user_config already handles migration by adding missing keywords
-        return config.get("keywords", DEFAULT_KEYWORDS.copy())
+        # get_user_config already handles migration via _migrate_keywords if missing
+        return config.get("keywords", deepcopy(DEFAULT_KEYWORDS))
 
     def add_user_keywords(self, user_id: int, category: str, keywords_to_add: List[str]) -> tuple[List[str], List[str]]:
         config = self.get_user_config(user_id)
-        keywords_map = config.get("keywords", DEFAULT_KEYWORDS.copy())
-        categories = config.get("categories", DEFAULT_CATEGORIES.copy())
+        keywords_map = config["keywords"]
+        categories = config["categories"]
         keywords_to_add_set = {k.strip().lower() for k in keywords_to_add if k.strip()}
         
         target_category = None
@@ -147,8 +150,8 @@ class StorageManager:
 
     def delete_user_keywords(self, user_id: int, category: str, keywords_to_delete: List[str]) -> tuple[List[str], List[str]]:
         config = self.get_user_config(user_id)
-        keywords_map = config.get("keywords", DEFAULT_KEYWORDS.copy())
-        categories = config.get("categories", DEFAULT_CATEGORIES.copy())
+        keywords_map = config["keywords"]
+        categories = config["categories"]
         keywords_to_delete_set = {k.strip().lower() for k in keywords_to_delete if k.strip()}
 
         target_category = None
@@ -193,21 +196,19 @@ class StorageManager:
         if category == "big_ticket":
             config["big_ticket_threshold"] = amount
         else:
-            if "budgets" not in config:
-                config["budgets"] = DEFAULT_BUDGETS.copy()
             config["budgets"][category] = amount
         
         self.save_user_config(user_id, config)
 
     def reset_user_budget(self, user_id: int):
         config = self.get_user_config(user_id)
-        config["budgets"] = DEFAULT_BUDGETS.copy()
+        config["budgets"] = deepcopy(DEFAULT_BUDGETS)
         config["big_ticket_threshold"] = BIG_TICKET_THRESHOLD
         self.save_user_config(user_id, config)
 
     def add_user_categories(self, user_id: int, categories: List[str]):
         config = self.get_user_config(user_id)
-        current_categories = set(config.get("categories", DEFAULT_CATEGORIES.copy()))
+        current_categories = set(config["categories"])
         for cat in categories:
             current_categories.add(cat.strip().lower())
         config["categories"] = list(current_categories)
@@ -215,7 +216,7 @@ class StorageManager:
 
     def delete_user_categories(self, user_id: int, categories: List[str]):
         config = self.get_user_config(user_id)
-        current_categories = set(config.get("categories", DEFAULT_CATEGORIES.copy()))
+        current_categories = set(config["categories"])
         for cat in categories:
             current_categories.discard(cat.strip().lower())
         config["categories"] = list(current_categories)
@@ -223,7 +224,7 @@ class StorageManager:
 
     def reset_user_categories(self, user_id: int):
         config = self.get_user_config(user_id)
-        config["categories"] = [cat.lower() for cat in DEFAULT_CATEGORIES.copy()]
+        config["categories"] = [cat.lower() for cat in deepcopy(DEFAULT_CATEGORIES)]
         self.save_user_config(user_id, config)
 
     def save_transaction(self, transaction: TransactionData, user_id: int):
