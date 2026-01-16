@@ -86,7 +86,7 @@ class FinanceBot:
                 f"<b>Type</b>: {parsed_data.type}\n"
                 f"<b>Time</b>: {datetime.fromisoformat(parsed_data.timestamp).strftime('%y/%m/%d %H:%M')}\n"
                 f"<b>Amount</b>: SGD {parsed_data.amount:.2f}\n"
-                f"<b>Category</b>: {parsed_data.category}\n"
+                f"<b>Category</b>: {parsed_data.category.capitalize()}\n"
                 f"<b>Description</b>: <blockquote expandable>{parsed_data.description}</blockquote>\n"
             )
             
@@ -111,7 +111,7 @@ class FinanceBot:
             await update.message.reply_text("❌ Usage: /setbudget <category>/'threshold' <amount>")
             return
         
-        category = str(context.args[0]).capitalize()
+        category = str(context.args[0])
 
         try:
             amount = float(context.args[1])
@@ -123,15 +123,13 @@ class FinanceBot:
             self.storage.update_user_budget(user_id, "big_ticket", amount)
             await update.message.reply_text(f"✅ Big ticket threshold set to SGD {amount:.2f}")
         else:
-            category = category.capitalize()
             user_categories = self.storage.get_user_categories(user_id)
             if category not in user_categories and category != "Total":
-                await update.message.reply_text(f"❌ Category '{category}' not found in your category list. Use /add_cat to add it first.")
+                await update.message.reply_text(f"❌ Category '{category.capitalize()}' not found in your category list. Use /add_cat to add it first.")
                 return
             
             self.storage.update_user_budget(user_id, category, amount)
-            await update.message.reply_text(f"✅ Budget for '{category}' set to SGD {amount:.2f}")
-
+            await update.message.reply_text(f"✅ Budget for '{category.capitalize()}' set to SGD {amount:.2f}")
     async def add_category_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = self._is_authorized(update)
         if not user_id:
@@ -142,14 +140,15 @@ class FinanceBot:
             return
 
         categories_str = " ".join(context.args)
-        categories = [c.strip().capitalize() for c in categories_str.split(",") if c.strip()]
+        categories = [c.strip().lower() for c in categories_str.split(",") if c.strip()]
         
         if not categories:
             await update.message.reply_text("❌ No valid categories provided.")
             return
 
         self.storage.add_user_categories(user_id, categories)
-        await update.message.reply_text(f"✅ Added categories: {', '.join(categories)}")
+        await update.message.reply_text(f"✅ Added categories: {', '.join([c.capitalize() for c in categories])}")
+        
     async def view_keywords_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = self._is_authorized(update)
         if not user_id: return
@@ -165,13 +164,13 @@ class FinanceBot:
         if target == 'all':
             response = "🔑 <b>All Keywords:</b>\n"
             for cat, keys in keywords_map.items():
-                response += f"<b>{cat}</b>: {', '.join(keys)}\n"
+                response += f"<b>{cat.capitalize()}</b>: {', '.join(keys)}\n"
         else:
             # Search case insensitive
             found = False
             for cat, keys in keywords_map.items():
                 if cat.lower() == target:
-                    response = f"🔑 <b>Keywords for {cat}:</b>\n{', '.join(keys)}"
+                    response = f"🔑 <b>Keywords for {cat.capitalize()}:</b>\n{', '.join(keys)}"
                     found = True
                     break
             if not found:
@@ -188,7 +187,7 @@ class FinanceBot:
             await update.message.reply_text("❌ Usage: /addkey <category> <key1, key2...>")
             return
             
-        category = context.args[0]
+        category = context.args[0].lower()
         keywords_str = " ".join(context.args[1:])
         keywords = [k.strip() for k in keywords_str.split(",") if k.strip()]
         
@@ -196,7 +195,7 @@ class FinanceBot:
             added, errors = self.storage.add_user_keywords(user_id, category, keywords)
             msg = ""
             if added:
-                msg += f"✅ Added to {category}: {', '.join(added)}\n"
+                msg += f"✅ Added to {category.capitalize()}: {', '.join(added)}\n"
             if errors:
                 msg += f"⚠️ Warnings:\n" + "\n".join(errors)
             
@@ -215,7 +214,7 @@ class FinanceBot:
             await update.message.reply_text("❌ Usage: /delkey <category> <key1, key2...>")
             return
 
-        category = context.args[0]
+        category = context.args[0].lower()
         keywords_str = " ".join(context.args[1:])
         keywords = [k.strip() for k in keywords_str.split(",") if k.strip()]
 
@@ -223,7 +222,7 @@ class FinanceBot:
             deleted, errors = self.storage.delete_user_keywords(user_id, category, keywords)
             msg = ""
             if deleted:
-                msg += f"✅ Deleted from {category}: {', '.join(deleted)}\n"
+                msg += f"✅ Deleted from {category.capitalize()}: {', '.join(deleted)}\n"
             if errors:
                 msg += f"⚠️ Warnings:\n" + "\n".join(errors)
             
@@ -233,6 +232,7 @@ class FinanceBot:
             await update.message.reply_text(msg)
         except ValueError as e:
             await update.message.reply_text(f"❌ {e}")
+
     async def delete_category_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = self._is_authorized(update)
         if not user_id:
@@ -243,7 +243,7 @@ class FinanceBot:
             return
 
         categories_str = " ".join(context.args)
-        categories = [c.strip().capitalize() for c in categories_str.split(",") if c.strip()]
+        categories = [c.strip().lower() for c in categories_str.split(",") if c.strip()]
         
         if not categories:
             await update.message.reply_text("❌ No valid categories provided.")
@@ -252,7 +252,7 @@ class FinanceBot:
         categories_to_delete = []
         for category in categories:
             if category in DEFAULT_CATEGORIES:
-                await update.message.reply_text(f"❌ Cannot delete default category '{category}'.")
+                await update.message.reply_text(f"❌ Cannot delete default category '{category.capitalize()}'.")
             else:
                 categories_to_delete.append(category)
                 
@@ -261,7 +261,8 @@ class FinanceBot:
         if not categories_to_delete:
             await update.message.reply_text("❌ No categories were deleted.")
         else:
-            await update.message.reply_text(f"✅ Deleted categories: {', '.join(categories_to_delete)}")
+            await update.message.reply_text(f"✅ Deleted categories: {', '.join([c.capitalize() for c in categories_to_delete])}")
+    
     async def reset_category_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = self._is_authorized(update)
         if not user_id:
@@ -282,7 +283,7 @@ class FinanceBot:
 
         response = "📂 **Current Categories**\n"
         for cat in categories:
-            response += f"- {cat}\n"
+            response += f"- {cat.capitalize()}\n"
         
         await update.message.reply_text(response, parse_mode='Markdown')
 
@@ -305,7 +306,7 @@ class FinanceBot:
         response = "📊 **Current Budgets**\n"
         if budgets:
             for category, amount in budgets.items():
-                response += f"- {category}: SGD {amount:.2f}\n"
+                response += f"- {category.capitalize()}: SGD {amount:.2f}\n"
         else:
             response += "No budgets configured.\n"
             
@@ -365,7 +366,7 @@ class FinanceBot:
         breakdown = list(analytics.get_category_breakdown().items())
         breakdown.sort(key=lambda x: x[1])
         for cat, amount in breakdown:
-            response += f"- {cat}: SGD {amount:.2f} ({abs(amount)/abs(totals['expense']) if totals['expense'] else 0:.1%})\n"
+            response += f"- {cat.capitalize()}: SGD {amount:.2f} ({abs(amount)/abs(totals['expense']) if totals['expense'] else 0:.1%})\n"
 
         response += "\n💳 **Account Breakdown**\n"
         account_breakdown = list(analytics.get_account_breakdown().items())

@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from dataclasses import fields
 import tempfile
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from src.config import TRANSACTIONS_DIR, DEFAULT_BUDGETS, BIG_TICKET_THRESHOLD, DEFAULT_CATEGORIES, DEFAULT_KEYWORDS
 from src.models import TransactionData
 
@@ -43,17 +43,6 @@ class StorageManager:
             }
             self.save_user_config(user_id, initial_config)
             logger.info(f"Initialized config for user {user_id}")
-            
-    def _migrate_keywords(self, user_id: int, config: Dict[str, Any]):
-        # Lazy migration for existing users
-        logger.info(f"Migrating keywords for user {user_id}")
-        keywords = DEFAULT_KEYWORDS.copy()
-        user_categories = config.get("categories", DEFAULT_CATEGORIES.copy())
-        for cat in user_categories:
-            if cat not in keywords:
-                keywords[cat] = [cat.lower()]
-        config["keywords"] = keywords
-        self.save_user_config(user_id, config)
 
     def save_user_config(self, user_id: int, config: Dict[str, Any]):
         config_path = self._get_config_path(user_id)
@@ -71,15 +60,24 @@ class StorageManager:
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
                 config = json.load(f)
+                require_update = False
                 if "budgets" not in config:
                     config["budgets"] = DEFAULT_BUDGETS.copy()
+                    require_update = True
                 if "big_ticket_threshold" not in config:
                     config["big_ticket_threshold"] = BIG_TICKET_THRESHOLD
+                    require_update = True
                 if "categories" not in config:
                     config["categories"] = DEFAULT_CATEGORIES.copy()
-                # Ensure keywords exist
+                    require_update = True
                 if "keywords" not in config:
-                    self._migrate_keywords(user_id, config)
+                    config["keywords"] = DEFAULT_KEYWORDS.copy()
+                    require_update = True
+
+                # update user config if needed
+                if require_update:
+                    self.save_user_config(user_id, config)
+
                 return config
         except Exception as e:
             logger.error(f"Failed to load user config: {e}")
@@ -103,6 +101,7 @@ class StorageManager:
         config = self.get_user_config(user_id)
         keywords_map = config.get("keywords", DEFAULT_KEYWORDS.copy())
         categories = config.get("categories", DEFAULT_CATEGORIES.copy())
+        keywords_to_add_set = {k.strip().lower() for k in keywords_to_add if k.strip()}
         
         target_category = None
         for cat in categories:
@@ -125,18 +124,18 @@ class StorageManager:
             for k in keys:
                 all_keywords.add(k.lower())
 
-        for keyword in keywords_to_add:
+        for keyword in keywords_to_add_set:
             k_lower = keyword.strip().lower()
             if not k_lower: continue
 
             if k_lower in all_keywords:
                 # Check if it belongs to current category (already exists)
                 if k_lower in keywords_map[target_category]:
-                    errors.append(f"'{keyword}' already exists in '{target_category}'")
+                    errors.append(f"'{keyword}' already exists in category '{target_category}'")
                 else:
                     # Find which category owns it
                     owner = next((c for c, keys in keywords_map.items() if k_lower in keys), "another category")
-                    errors.append(f"'{keyword}' already used in '{owner}'")
+                    errors.append(f"'{keyword}' already exists in category '{owner}'")
             else:
                 keywords_map[target_category].append(k_lower)
                 all_keywords.add(k_lower)
@@ -150,6 +149,7 @@ class StorageManager:
         config = self.get_user_config(user_id)
         keywords_map = config.get("keywords", DEFAULT_KEYWORDS.copy())
         categories = config.get("categories", DEFAULT_CATEGORIES.copy())
+        keywords_to_delete_set = {k.strip().lower() for k in keywords_to_delete if k.strip()}
 
         target_category = None
         for cat in categories:
@@ -169,7 +169,7 @@ class StorageManager:
         
         current_keys = keywords_map[target_category]
         
-        for keyword in keywords_to_delete:
+        for keyword in keywords_to_delete_set:
             k_lower = keyword.strip().lower()
             
             # Constraint 1: Cannot delete category name
@@ -209,7 +209,7 @@ class StorageManager:
         config = self.get_user_config(user_id)
         current_categories = set(config.get("categories", DEFAULT_CATEGORIES.copy()))
         for cat in categories:
-            current_categories.add(cat.strip())
+            current_categories.add(cat.strip().lower())
         config["categories"] = list(current_categories)
         self.save_user_config(user_id, config)
 
@@ -217,18 +217,14 @@ class StorageManager:
         config = self.get_user_config(user_id)
         current_categories = set(config.get("categories", DEFAULT_CATEGORIES.copy()))
         for cat in categories:
-            current_categories.discard(cat.strip())
+            current_categories.discard(cat.strip().lower())
         config["categories"] = list(current_categories)
         self.save_user_config(user_id, config)
 
     def reset_user_categories(self, user_id: int):
         config = self.get_user_config(user_id)
-        config["categories"] = DEFAULT_CATEGORIES.copy()
+        config["categories"] = [cat.lower() for cat in DEFAULT_CATEGORIES.copy()]
         self.save_user_config(user_id, config)
-
-    def get_user_categories(self, user_id: int) -> List[str]:
-        config = self.get_user_config(user_id)
-        return config.get("categories", DEFAULT_CATEGORIES.copy())
 
     def save_transaction(self, transaction: TransactionData, user_id: int):
         try:

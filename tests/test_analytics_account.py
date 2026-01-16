@@ -9,7 +9,7 @@ class TestAnalyticsAccount(unittest.TestCase):
             TransactionData(id="2", amount=-50.0, category="Transport", bank="DBS", account="5678", type="Unknown", timestamp="2024-01-01T00:00:00Z", description=""),
             TransactionData(id="3", amount=-20.0, category="Food", bank="UOB", account="1234", type="Unknown", timestamp="2024-01-01T00:00:00Z", description=""),
             TransactionData(id="4", amount=2000.0, category="Salary", bank="UOB", account="1234", type="Unknown", timestamp="2024-01-01T00:00:00Z", description=""), # Income, should be ignored
-            TransactionData(id="5", amount=50.0, category="Disbursement", bank="UOB", account="1234", type="Unknown", timestamp="2024-01-01T00:00:00Z", description=""), # Disbursement, should be counted as positive expense (reduction)
+            TransactionData(id="5", amount=50.0, category="disbursement", bank="UOB", account="1234", type="Unknown", timestamp="2024-01-01T00:00:00Z", description=""), # disbursement, should be counted as positive expense (reduction)
         ]
         
         analytics = AnalyticsEngine(transactions)
@@ -37,7 +37,7 @@ class TestAnalyticsAccount(unittest.TestCase):
             TransactionData(id="9", amount=-100.0, category="Shopping", bank="UOB", account="4321", type="PayNow", timestamp="2024-01-01T00:00:00Z", description=""), 
               
             TransactionData(id="10", amount=-200.0, category="Bills", bank="UOB", account="8765", type="Transfer", timestamp="2024-01-01T00:00:00Z", description=""),
-            TransactionData(id="11", amount=1000.0, category="Disbursement", bank="UOB", account="8765", type="Transfer", timestamp="2024-01-01T00:00:00Z", description=""), # Disbursement
+            TransactionData(id="11", amount=1000.0, category="disbursement", bank="UOB", account="8765", type="Transfer", timestamp="2024-01-01T00:00:00Z", description=""), # disbursement
         ]
         
         analytics = AnalyticsEngine(transactions)

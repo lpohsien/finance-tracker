@@ -107,15 +107,15 @@ class TransactionParser:
         text_to_check = (description + " " + remarks).lower()
 
         if keywords_map:
-             keywords = keywords_map
+            keywords = keywords_map
         elif categories_list:
-             # Fallback if no keywords provided (should not happen with updated bot logic)
-             keywords = { cat: [cat.lower()] for cat in categories_list }
+            # Fallback if no keywords provided (should not happen with updated bot logic)
+            keywords = { cat: [cat.lower()] for cat in categories_list }
         else:
-             keywords = {}
+            keywords = {}
 
         if "disbursement" in text_to_check:
-            return "Disbursement"
+            return "disbursement"
 
         for cat, words in keywords.items():
             if any(word in text_to_check for word in words):
