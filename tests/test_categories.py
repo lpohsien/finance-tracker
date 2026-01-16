@@ -118,4 +118,4 @@ class TestCategories(unittest.TestCase):
         # Check errors
         error_str = " ".join(errors)
         self.assertTrue("Food" in error_str or "food" in error_str) # Default category error
-        self.assertTrue("Alien" in error_str) # Not found error
+        self.assertIn("Alien", error_str) # Not found error
