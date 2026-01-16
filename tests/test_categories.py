@@ -51,7 +51,7 @@ class TestCategories(unittest.TestCase):
         added, errors = self.storage.add_user_categories(self.user_id, ["Food", "FOOD"])
         
         self.assertEqual(len(added), 0)
-        self.assertTrue(len(errors) >= 1)
+        self.assertGreaterEqual(len(errors), 1)
         self.assertTrue(any("'Food' already exists" in e for e in errors) or any("'FOOD' already exists" in e for e in errors))
 
     def test_add_mixed_valid_invalid(self):
