@@ -98,13 +98,13 @@ class TestKeywords(unittest.TestCase):
         deleted, errors = self.storage.delete_user_keywords(self.user_id, "Food", ["meal", "lunch", "kebab", "breakfast", "food"])
 
         # “lunch", "breakfast" should be deleted
-        self.assertTrue("breakfast" in deleted)
+        self.assertIn("breakfast", deleted)
         self.assertIn("lunch", deleted)
 
         # "meal", "dinner" should error (not found), "food" cannot delete
         self.assertIn("'meal' not found in 'food'", errors)
         self.assertIn("'kebab' not found in 'food'", errors)
-        self.assertTrue("Cannot delete category name 'food'" in errors)
+        self.assertIn("Cannot delete category name 'food'", errors)
 
     def test_delete_keyword_case_insensitive(self):
         # "coffee" is in Snack
