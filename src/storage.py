@@ -211,6 +211,8 @@ class StorageManager:
         current_categories = set(config["categories"])
         for cat in categories:
             current_categories.add(cat.strip().lower())
+            if cat.strip().lower() not in config["keywords"]:
+                config["keywords"][cat.strip().lower()] = [cat.strip().lower()]
         config["categories"] = list(current_categories)
         self.save_user_config(user_id, config)
 
@@ -219,6 +221,7 @@ class StorageManager:
         current_categories = set(config["categories"])
         for cat in categories:
             current_categories.discard(cat.strip().lower())
+            del config["keywords"][cat.strip().lower()]
         config["categories"] = list(current_categories)
         self.save_user_config(user_id, config)
 
