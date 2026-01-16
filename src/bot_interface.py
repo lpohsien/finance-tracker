@@ -545,7 +545,6 @@ class FinanceBot:
 /viewkeys - View keywords
 /addkey <category> <keyword1>, <keyword2> - Add keywords
 /delkey <category> <keyword1>, <keyword2> - Delete keywords
-/resetkeys - Reset keywords to default
 
 *Transactions*
 Simply forward or paste your bank transaction message.
