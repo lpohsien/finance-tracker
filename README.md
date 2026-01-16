@@ -160,9 +160,14 @@ Send a message to the bot in the format:
 
 **Categories**
 *   `/viewcat`: View all available categories.
-*   `/addcat <cat1>, <cat2>`: Add new categories.
-*   `/deletecat <cat1>, <cat2>`: Delete custom categories (default categories cannot be deleted).
+*   `/addcat <cat1>, <cat2>`: Add new categories (case insensitive).
+*   `/delcat <cat1>, <cat2>`: Delete custom categories (default categories cannot be deleted).
 *   `/resetcat`: Reset categories to the default list.
+
+**Keywords**
+*   `/viewkeys [category]`: View keywords for a specific category (or 'all').
+*   `/addkey <category> <kw1>, <kw2>`: Add keywords to a category (case insensitive).
+*   `/delkey <category> <kw1>, <kw2>`: Delete keywords from a category.
 
 **Transactions**
 *   Simply forward or paste your bank transaction message in the required format to log it.
