@@ -122,7 +122,7 @@ class FinanceBot:
         
         msg = ""
         if added:
-            msg += f"✅ Added categories: {', '.join([c.capitalize() for c in added])}\n"
+            msg += f"✅ Added categories: {', '.join([c.capitalize() for c in added])}\n\n"
         if errors:
             msg += f"⚠️ Warnings:\n" + "\n".join(errors)
             
@@ -151,7 +151,7 @@ class FinanceBot:
         
         msg = ""
         if deleted:
-            msg += f"✅ Deleted categories: {', '.join([c.capitalize() for c in deleted])}\n"
+            msg += f"✅ Deleted categories: {', '.join([c.capitalize() for c in deleted])}\n\n"
         if errors:
             msg += f"⚠️ Warnings:\n" + "\n".join(errors)
             
@@ -538,7 +538,7 @@ class FinanceBot:
 *Categories*
 /viewcat - View categories
 /addcat <cat1>, <cat2> - Add categories
-/deletecat <cat1>, <cat2> - Delete categories
+/delcat <cat1>, <cat2> - Delete categories
 /resetcat - Reset categories to default
 
 *Keywords*
@@ -581,7 +581,7 @@ Simply forward or paste your bank transaction message.
             resetbudget - reset all budgets to default values
             viewbudget - view all current budgets
             addcat - /addcat <cat1>, <cat2> add new categories
-            deletecat - /deletecat <cat1>, <cat2> delete categories
+            delcat - /delcat <cat1>, <cat2> delete categories
             resetcat - /resetcat categories to default
             viewcat - /viewcat all current categories
             <message> - Send a bank transaction message to log it
@@ -596,7 +596,7 @@ Simply forward or paste your bank transaction message.
             BotCommand("setbudget", "Set budget"),
             BotCommand("viewcat", "View categories"),
             BotCommand("addcat", "Add categories"),
-            BotCommand("deletecat", "Delete categories"),
+            BotCommand("delcat", "Delete categories"),
             BotCommand("resetcat", "Reset categories"),
             BotCommand("viewkeys", "View keywords"),
             BotCommand("addkey", "Add keywords"),
@@ -615,7 +615,7 @@ Simply forward or paste your bank transaction message.
         application.add_handler(CommandHandler("resetbudget", self.reset_budget_command))
         application.add_handler(CommandHandler("viewbudget", self.view_budget_command))
         application.add_handler(CommandHandler("addcat", self.add_category_command))
-        application.add_handler(CommandHandler("deletecat", self.delete_category_command))
+        application.add_handler(CommandHandler("delcat", self.delete_category_command))
         application.add_handler(CommandHandler("resetcat", self.reset_category_command))
         application.add_handler(CommandHandler("viewcat", self.view_category_command))
         application.add_handler(CommandHandler("viewkeys", self.view_keywords_command))
