@@ -102,34 +102,6 @@ class FinanceBot:
             if err_msg:
                 await update.message.reply_text(err_msg, parse_mode='HTML')
 
-    async def set_budget_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        user_id = self._is_authorized(update)
-        if not user_id:
-            return
-
-        if not context.args or len(context.args) != 2:
-            await update.message.reply_text("❌ Usage: /setbudget <category>/'threshold' <amount>")
-            return
-        
-        category = str(context.args[0])
-
-        try:
-            amount = float(context.args[1])
-        except ValueError:
-            await update.message.reply_text("❌ Invalid amount. Please provide a number.")
-            return
-
-        if category.lower() == 'threshold':
-            self.storage.update_user_budget(user_id, "big_ticket", amount)
-            await update.message.reply_text(f"✅ Big ticket threshold set to SGD {amount:.2f}")
-        else:
-            user_categories = self.storage.get_user_categories(user_id)
-            if category not in user_categories and category != "Total":
-                await update.message.reply_text(f"❌ Category '{category.capitalize()}' not found in your category list. Use /add_cat to add it first.")
-                return
-            
-            self.storage.update_user_budget(user_id, category, amount)
-            await update.message.reply_text(f"✅ Budget for '{category.capitalize()}' set to SGD {amount:.2f}")
     async def add_category_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = self._is_authorized(update)
         if not user_id:
@@ -146,9 +118,72 @@ class FinanceBot:
             await update.message.reply_text("❌ No valid categories provided.")
             return
 
-        self.storage.add_user_categories(user_id, categories)
-        await update.message.reply_text(f"✅ Added categories: {', '.join([c.capitalize() for c in categories])}")
+        added, errors = self.storage.add_user_categories(user_id, categories)
         
+        msg = ""
+        if added:
+            msg += f"✅ Added categories: {', '.join([c.capitalize() for c in added])}\n"
+        if errors:
+            msg += f"⚠️ Warnings:\n" + "\n".join(errors)
+            
+        if not msg:
+            msg = "No changes made."
+
+        await update.message.reply_text(msg)
+
+    async def delete_category_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = self._is_authorized(update)
+        if not user_id:
+            return
+
+        if not context.args:
+            await update.message.reply_text("❌ Usage: /delete_cat <category1>, <category2>, ...")
+            return
+
+        categories_str = " ".join(context.args)
+        categories = [c.strip().lower() for c in categories_str.split(",") if c.strip()]
+        
+        if not categories:
+            await update.message.reply_text("❌ No valid categories provided.")
+            return
+
+        deleted, errors = self.storage.delete_user_categories(user_id, categories)
+        
+        msg = ""
+        if deleted:
+            msg += f"✅ Deleted categories: {', '.join([c.capitalize() for c in deleted])}\n"
+        if errors:
+            msg += f"⚠️ Warnings:\n" + "\n".join(errors)
+            
+        if not msg:
+            msg = "No changes made."
+
+        await update.message.reply_text(msg)
+    
+    async def reset_category_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = self._is_authorized(update)
+        if not user_id:
+            return
+
+        self.storage.reset_user_categories(user_id)
+        await update.message.reply_text("✅ Categories reset to default.")
+
+    async def view_category_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = self._is_authorized(update)
+        if not user_id:
+            return
+
+        categories = self.storage.get_user_categories(user_id)
+        if not categories:
+             await update.message.reply_text("No categories found.")
+             return
+
+        response = "📂 **Current Categories**\n"
+        for cat in categories:
+            response += f"- {cat.capitalize()}\n"
+        
+        await update.message.reply_text(response, parse_mode='Markdown')
+
     async def view_keywords_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = self._is_authorized(update)
         if not user_id: return
@@ -233,59 +268,34 @@ class FinanceBot:
         except ValueError as e:
             await update.message.reply_text(f"❌ {e}")
 
-    async def delete_category_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def set_budget_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = self._is_authorized(update)
         if not user_id:
             return
 
-        if not context.args:
-            await update.message.reply_text("❌ Usage: /delete_cat <category1>, <category2>, ...")
+        if not context.args or len(context.args) != 2:
+            await update.message.reply_text("❌ Usage: /setbudget <category>/'threshold' <amount>")
             return
-
-        categories_str = " ".join(context.args)
-        categories = [c.strip().lower() for c in categories_str.split(",") if c.strip()]
         
-        if not categories:
-            await update.message.reply_text("❌ No valid categories provided.")
+        category = str(context.args[0])
+
+        try:
+            amount = float(context.args[1])
+        except ValueError:
+            await update.message.reply_text("❌ Invalid amount. Please provide a number.")
             return
 
-        categories_to_delete = []
-        for category in categories:
-            if category in DEFAULT_CATEGORIES:
-                await update.message.reply_text(f"❌ Cannot delete default category '{category.capitalize()}'.")
-            else:
-                categories_to_delete.append(category)
-                
-
-        self.storage.delete_user_categories(user_id, categories_to_delete)
-        if not categories_to_delete:
-            await update.message.reply_text("❌ No categories were deleted.")
+        if category.lower() == 'threshold':
+            self.storage.update_user_budget(user_id, "big_ticket", amount)
+            await update.message.reply_text(f"✅ Big ticket threshold set to SGD {amount:.2f}")
         else:
-            await update.message.reply_text(f"✅ Deleted categories: {', '.join([c.capitalize() for c in categories_to_delete])}")
-    
-    async def reset_category_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        user_id = self._is_authorized(update)
-        if not user_id:
-            return
-
-        self.storage.reset_user_categories(user_id)
-        await update.message.reply_text("✅ Categories reset to default.")
-
-    async def view_category_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        user_id = self._is_authorized(update)
-        if not user_id:
-            return
-
-        categories = self.storage.get_user_categories(user_id)
-        if not categories:
-             await update.message.reply_text("No categories found.")
-             return
-
-        response = "📂 **Current Categories**\n"
-        for cat in categories:
-            response += f"- {cat.capitalize()}\n"
-        
-        await update.message.reply_text(response, parse_mode='Markdown')
+            user_categories = self.storage.get_user_categories(user_id)
+            if category not in user_categories and category.lower() != "total":
+                await update.message.reply_text(f"❌ Category '{category.capitalize()}' not found in your category list. Use /add_cat to add it first.")
+                return
+            
+            self.storage.update_user_budget(user_id, category, amount)
+            await update.message.reply_text(f"✅ Budget for '{category.capitalize()}' set to SGD {amount:.2f}")
 
     async def reset_budget_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = self._is_authorized(update)
@@ -530,6 +540,12 @@ class FinanceBot:
 /addcat <cat1>, <cat2> - Add categories
 /deletecat <cat1>, <cat2> - Delete categories
 /resetcat - Reset categories to default
+
+*Keywords*
+/viewkeys - View keywords
+/addkey <category> <keyword1>, <keyword2> - Add keywords
+/delkey <category> <keyword1>, <keyword2> - Delete keywords
+/resetkeys - Reset keywords to default
 
 *Transactions*
 Simply forward or paste your bank transaction message.

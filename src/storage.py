@@ -206,24 +206,64 @@ class StorageManager:
         config["big_ticket_threshold"] = BIG_TICKET_THRESHOLD
         self.save_user_config(user_id, config)
 
-    def add_user_categories(self, user_id: int, categories: List[str]):
+    def add_user_categories(self, user_id: int, categories: List[str]) -> tuple[List[str], List[str]]:
         config = self.get_user_config(user_id)
         current_categories = set(config["categories"])
+        
+        added = []
+        errors = []
+        
         for cat in categories:
-            current_categories.add(cat.strip().lower())
-            if cat.strip().lower() not in config["keywords"]:
-                config["keywords"][cat.strip().lower()] = [cat.strip().lower()]
+            cat_lower = cat.strip().lower()
+            if not cat_lower:
+                continue
+                
+            if cat_lower in current_categories:
+                errors.append(f"Category '{cat}' already exists.")
+            else:
+                current_categories.add(cat_lower)
+                
+                # Initialize keywords for the new category if not present
+                if cat_lower not in config["keywords"]:
+                    config["keywords"][cat_lower] = [cat_lower]
+                added.append(cat_lower)
+                
         config["categories"] = list(current_categories)
         self.save_user_config(user_id, config)
+        return added, errors
 
-    def delete_user_categories(self, user_id: int, categories: List[str]):
+    def delete_user_categories(self, user_id: int, categories: List[str]) -> tuple[List[str], List[str]]:
         config = self.get_user_config(user_id)
         current_categories = set(config["categories"])
+        default_categories_lower = {c.lower() for c in DEFAULT_CATEGORIES}
+        
+        deleted = []
+        errors = []
+        
         for cat in categories:
-            current_categories.discard(cat.strip().lower())
-            del config["keywords"][cat.strip().lower()]
+            cat_lower = cat.strip().lower()
+            if not cat_lower:
+                continue
+            
+            if cat_lower not in current_categories:
+                errors.append(f"Category '{cat}' not found.")
+                continue
+
+            # Skip deleting default categories
+            if cat_lower in default_categories_lower:
+                errors.append(f"Cannot delete default category '{cat}'.")
+                continue
+            
+            current_categories.discard(cat_lower)
+
+            # Remove keywords associated with the category
+            if cat_lower in config["keywords"]:
+                del config["keywords"][cat_lower]
+            deleted.append(cat_lower)
+            
         config["categories"] = list(current_categories)
         self.save_user_config(user_id, config)
+        return deleted, errors
 
     def reset_user_categories(self, user_id: int):
         config = self.get_user_config(user_id)
