@@ -74,9 +74,9 @@ class TestKeywords(unittest.TestCase):
         # "treat", "candy", "snack" should error
         errors = set(errors)
         print(errors)
-        self.assertTrue("'candy' already exists in category 'snack'" in errors)
-        self.assertTrue("'treat' already exists in category 'snack'" in errors)
-        self.assertTrue("'snack' already exists in category 'snack'" in errors)
+        self.assertIn("'candy' already exists in category 'snack'", errors)
+        self.assertIn("'treat' already exists in category 'snack'", errors)
+        self.assertIn("'snack' already exists in category 'snack'", errors)
 
     def test_delete_keyword_success(self):
         # "dinner" is in Food
