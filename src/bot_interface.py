@@ -225,7 +225,7 @@ class FinanceBot:
             if deleted:
                 msg += f"✅ Deleted from {category}: {', '.join(deleted)}\n"
             if errors:
-                 msg += f"⚠️ Warnings:\n" + "\n".join(errors)
+                msg += f"⚠️ Warnings:\n" + "\n".join(errors)
             
             if not msg:
                 msg = "No changes made."
