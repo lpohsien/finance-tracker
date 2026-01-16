@@ -125,7 +125,7 @@ class StorageManager:
         all_keywords = set()
         for cat, keys in keywords_map.items():
             for k in keys:
-                all_keywords.add(k.lower())
+                all_keywords.add(k)
 
         for keyword in keywords_to_add_set:
             k_lower = keyword.strip().lower()
