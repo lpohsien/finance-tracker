@@ -73,7 +73,6 @@ class TestKeywords(unittest.TestCase):
 
         # "treat", "candy", "snack" should error
         errors = set(errors)
-        print(errors)
         self.assertIn("'candy' already exists in category 'snack'", errors)
         self.assertIn("'treat' already exists in category 'snack'", errors)
         self.assertIn("'snack' already exists in category 'snack'", errors)
