@@ -175,8 +175,8 @@ class FinanceBot:
                     found = True
                     break
             if not found:
-                 await update.message.reply_text(f"❌ Category '{context.args[0]}' not found. Please add the category first using /addcat.")
-                 return
+                await update.message.reply_text(f"❌ Category '{context.args[0]}' not found. Please add the category first using /addcat.")
+                return
         
         await update.message.reply_text(response, parse_mode='HTML')
 
