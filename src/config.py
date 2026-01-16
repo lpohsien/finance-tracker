@@ -55,3 +55,24 @@ DEFAULT_CATEGORIES = [
     "Disbursement",
     "Other"
 ]
+
+# Default Keywords
+DEFAULT_KEYWORDS = {
+    "Food": ["food", "dinner", "lunch", "breakfast", "cafe", "restaurant", "mcdonald", "kfc"],
+    "Snack": ["snack", "snacks", "coffee", "bubble tea", "tea", "drink", "drinks"],
+    "Transport": ["transport", "grab", "gojek", "uber", "taxi", "train", "bus", "mrt", "concession", "smrt"],
+    "Shopping": ["shopping", "shopee", "lazada", "amazon", "uniqlo"],
+    "Groceries": ["groceries", "grocery", "fairprice", "cold storage", "giant", "market"],
+    "Utilities": ["utilities", "singtel", "starhub", "m1", "electricity", "water"],
+    "Donation": ["donation"],
+    "Entertainment": ["entertainment"],
+    "Travel": ["travel"],
+    "Health": ["health"],
+    "Education": ["education"],
+    "Subscription": ["subscription"],
+    "Tax": ["tax"],
+    "Insurance": ["insurance"],
+    "Income": ["income", "salary", "bonus"],
+    "Disbursement": ["disbursement"],
+    "Other": ["other"]
+}

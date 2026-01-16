@@ -4,8 +4,8 @@ import json
 from pathlib import Path
 from dataclasses import fields
 import tempfile
-from typing import List, Dict, Any
-from src.config import TRANSACTIONS_DIR, DEFAULT_BUDGETS, BIG_TICKET_THRESHOLD, DEFAULT_CATEGORIES
+from typing import List, Dict, Any, Optional
+from src.config import TRANSACTIONS_DIR, DEFAULT_BUDGETS, BIG_TICKET_THRESHOLD, DEFAULT_CATEGORIES, DEFAULT_KEYWORDS
 from src.models import TransactionData
 
 logger = logging.getLogger(__name__)
@@ -38,10 +38,22 @@ class StorageManager:
             initial_config = {
                 "budgets": DEFAULT_BUDGETS.copy(),
                 "big_ticket_threshold": BIG_TICKET_THRESHOLD,
-                "categories": DEFAULT_CATEGORIES.copy()
+                "categories": DEFAULT_CATEGORIES.copy(),
+                "keywords": DEFAULT_KEYWORDS.copy()
             }
             self.save_user_config(user_id, initial_config)
             logger.info(f"Initialized config for user {user_id}")
+            
+    def _migrate_keywords(self, user_id: int, config: Dict[str, Any]):
+        # Lazy migration for existing users
+        logger.info(f"Migrating keywords for user {user_id}")
+        keywords = DEFAULT_KEYWORDS.copy()
+        user_categories = config.get("categories", DEFAULT_CATEGORIES.copy())
+        for cat in user_categories:
+            if cat not in keywords:
+                keywords[cat] = [cat.lower()]
+        config["keywords"] = keywords
+        self.save_user_config(user_id, config)
 
     def save_user_config(self, user_id: int, config: Dict[str, Any]):
         config_path = self._get_config_path(user_id)
@@ -65,14 +77,115 @@ class StorageManager:
                     config["big_ticket_threshold"] = BIG_TICKET_THRESHOLD
                 if "categories" not in config:
                     config["categories"] = DEFAULT_CATEGORIES.copy()
+                # Ensure keywords exist
+                if "keywords" not in config:
+                    self._migrate_keywords(user_id, config)
                 return config
         except Exception as e:
             logger.error(f"Failed to load user config: {e}")
             return {
                 "budgets": DEFAULT_BUDGETS.copy(), 
                 "big_ticket_threshold": BIG_TICKET_THRESHOLD,
-                "categories": DEFAULT_CATEGORIES.copy()
+                "categories": DEFAULT_CATEGORIES.copy(),
+                "keywords": DEFAULT_KEYWORDS.copy()
             }
+
+    def get_user_categories(self, user_id: int) -> List[str]:
+        config = self.get_user_config(user_id)
+        return config.get("categories", DEFAULT_CATEGORIES.copy())
+
+    def get_user_keywords(self, user_id: int) -> Dict[str, List[str]]:
+        config = self.get_user_config(user_id)
+        # get_user_config already handles migration via _migrate_keywords if missing
+        return config.get("keywords", DEFAULT_KEYWORDS.copy())
+
+    def add_user_keywords(self, user_id: int, category: str, keywords_to_add: List[str]) -> tuple[List[str], List[str]]:
+        config = self.get_user_config(user_id)
+        keywords_map = config.get("keywords", DEFAULT_KEYWORDS.copy())
+        categories = config.get("categories", DEFAULT_CATEGORIES.copy())
+        
+        target_category = None
+        for cat in categories:
+            if cat.lower() == category.lower():
+                target_category = cat
+                break
+        
+        if not target_category:
+            raise ValueError(f"Category '{category}' does not exist. Please add the category first using /addcat.")
+            
+        if target_category not in keywords_map:
+            keywords_map[target_category] = [target_category.lower()]
+
+        added = []
+        errors = []
+        
+        # Flatten all other keywords for uniqueness check
+        all_keywords = set()
+        for cat, keys in keywords_map.items():
+            for k in keys:
+                all_keywords.add(k.lower())
+
+        for keyword in keywords_to_add:
+            k_lower = keyword.strip().lower()
+            if not k_lower: continue
+
+            if k_lower in all_keywords:
+                # Check if it belongs to current category (already exists)
+                if k_lower in keywords_map[target_category]:
+                    errors.append(f"'{keyword}' already exists in '{target_category}'")
+                else:
+                    # Find which category owns it
+                    owner = next((c for c, keys in keywords_map.items() if k_lower in keys), "another category")
+                    errors.append(f"'{keyword}' already used in '{owner}'")
+            else:
+                keywords_map[target_category].append(k_lower)
+                all_keywords.add(k_lower)
+                added.append(keyword)
+        
+        config["keywords"] = keywords_map
+        self.save_user_config(user_id, config)
+        return added, errors
+
+    def delete_user_keywords(self, user_id: int, category: str, keywords_to_delete: List[str]) -> tuple[List[str], List[str]]:
+        config = self.get_user_config(user_id)
+        keywords_map = config.get("keywords", DEFAULT_KEYWORDS.copy())
+        categories = config.get("categories", DEFAULT_CATEGORIES.copy())
+
+        target_category = None
+        for cat in categories:
+            if cat.lower() == category.lower():
+                target_category = cat
+                break
+        
+        if not target_category:
+            raise ValueError(f"Category '{category}' does not exist. Please add the category first using /addcat.")
+            
+        if target_category not in keywords_map:
+            # Should not happen if initialized correctly
+            keywords_map[target_category] = [target_category.lower()]
+            
+        deleted = []
+        errors = []
+        
+        current_keys = keywords_map[target_category]
+        
+        for keyword in keywords_to_delete:
+            k_lower = keyword.strip().lower()
+            
+            # Constraint 1: Cannot delete category name
+            if k_lower == target_category.lower():
+                errors.append(f"Cannot delete category name '{keyword}'")
+                continue
+                
+            if k_lower in current_keys:
+                current_keys.remove(k_lower)
+                deleted.append(keyword)
+            else:
+                errors.append(f"'{keyword}' not found in '{target_category}'")
+
+        config["keywords"] = keywords_map
+        self.save_user_config(user_id, config)
+        return deleted, errors
 
     def update_user_budget(self, user_id: int, category: str, amount: float):
         config = self.get_user_config(user_id)

@@ -57,7 +57,8 @@ class FinanceBot:
         logger.debug(f"Received message: {message_text} from user ID: {user_id}")
 
         user_categories = self.storage.get_user_categories(user_id)
-        parsed_data, err_msg = self.parser.parse_message(message_text, user_categories)
+        user_keywords = self.storage.get_user_keywords(user_id)
+        parsed_data, err_msg = self.parser.parse_message(message_text, user_categories, user_keywords)
         
         if parsed_data:
             self.storage.save_transaction(parsed_data, user_id)
@@ -149,7 +150,89 @@ class FinanceBot:
 
         self.storage.add_user_categories(user_id, categories)
         await update.message.reply_text(f"✅ Added categories: {', '.join(categories)}")
+    async def view_keywords_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = self._is_authorized(update)
+        if not user_id: return
 
+        if not context.args:
+            await update.message.reply_text("❌ Usage: /viewkeys <category>/'all'")
+            return
+        
+        target = str(context.args[0]).lower()
+        keywords_map = self.storage.get_user_keywords(user_id)
+        
+        response = ""
+        if target == 'all':
+            response = "🔑 <b>All Keywords:</b>\n"
+            for cat, keys in keywords_map.items():
+                response += f"<b>{cat}</b>: {', '.join(keys)}\n"
+        else:
+            # Search case insensitive
+            found = False
+            for cat, keys in keywords_map.items():
+                if cat.lower() == target:
+                    response = f"🔑 <b>Keywords for {cat}:</b>\n{', '.join(keys)}"
+                    found = True
+                    break
+            if not found:
+                 await update.message.reply_text(f"❌ Category '{context.args[0]}' not found. Please add the category first using /addcat.")
+                 return
+        
+        await update.message.reply_text(response, parse_mode='HTML')
+
+    async def add_keyword_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = self._is_authorized(update)
+        if not user_id: return
+
+        if not context.args or len(context.args) < 2:
+            await update.message.reply_text("❌ Usage: /addkey <category> <key1, key2...>")
+            return
+            
+        category = context.args[0]
+        keywords_str = " ".join(context.args[1:])
+        keywords = [k.strip() for k in keywords_str.split(",") if k.strip()]
+        
+        try:
+            added, errors = self.storage.add_user_keywords(user_id, category, keywords)
+            msg = ""
+            if added:
+                msg += f"✅ Added to {category}: {', '.join(added)}\n"
+            if errors:
+                msg += f"⚠️ Warnings:\n" + "\n".join(errors)
+            
+            if not msg:
+                msg = "No changes made."
+                
+            await update.message.reply_text(msg)
+        except ValueError as e:
+            await update.message.reply_text(f"❌ {e}")
+
+    async def del_keyword_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = self._is_authorized(update)
+        if not user_id: return
+
+        if not context.args or len(context.args) < 2:
+            await update.message.reply_text("❌ Usage: /delkey <category> <key1, key2...>")
+            return
+
+        category = context.args[0]
+        keywords_str = " ".join(context.args[1:])
+        keywords = [k.strip() for k in keywords_str.split(",") if k.strip()]
+
+        try:
+            deleted, errors = self.storage.delete_user_keywords(user_id, category, keywords)
+            msg = ""
+            if deleted:
+                msg += f"✅ Deleted from {category}: {', '.join(deleted)}\n"
+            if errors:
+                 msg += f"⚠️ Warnings:\n" + "\n".join(errors)
+            
+            if not msg:
+                msg = "No changes made."
+
+            await update.message.reply_text(msg)
+        except ValueError as e:
+            await update.message.reply_text(f"❌ {e}")
     async def delete_category_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = self._is_authorized(update)
         if not user_id:
@@ -498,6 +581,9 @@ Simply forward or paste your bank transaction message.
             BotCommand("addcat", "Add categories"),
             BotCommand("deletecat", "Delete categories"),
             BotCommand("resetcat", "Reset categories"),
+            BotCommand("viewkeys", "View keywords"),
+            BotCommand("addkey", "Add keywords"),
+            BotCommand("delkey", "Delete keywords"),
             BotCommand("delete", "Delete a transaction"),
             BotCommand("clear", "Delete all transactions"),
         ]
@@ -515,6 +601,9 @@ Simply forward or paste your bank transaction message.
         application.add_handler(CommandHandler("deletecat", self.delete_category_command))
         application.add_handler(CommandHandler("resetcat", self.reset_category_command))
         application.add_handler(CommandHandler("viewcat", self.view_category_command))
+        application.add_handler(CommandHandler("viewkeys", self.view_keywords_command))
+        application.add_handler(CommandHandler("addkey", self.add_keyword_command))
+        application.add_handler(CommandHandler("delkey", self.del_keyword_command))
         application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), self.handle_message))
 
         logger.info("Bot is polling...")
