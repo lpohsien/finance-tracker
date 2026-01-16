@@ -225,6 +225,7 @@ class StorageManager:
     def reset_user_categories(self, user_id: int):
         config = self.get_user_config(user_id)
         config["categories"] = [cat.lower() for cat in deepcopy(DEFAULT_CATEGORIES)]
+        config["keywords"] = deepcopy(DEFAULT_KEYWORDS)
         self.save_user_config(user_id, config)
 
     def save_transaction(self, transaction: TransactionData, user_id: int):
