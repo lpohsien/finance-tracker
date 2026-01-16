@@ -142,7 +142,7 @@ class StorageManager:
             else:
                 keywords_map[target_category].append(k_lower)
                 all_keywords.add(k_lower)
-                added.append(keyword)
+                added.append(k_lower)
         
         config["keywords"] = keywords_map
         self.save_user_config(user_id, config)
