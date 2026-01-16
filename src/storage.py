@@ -182,7 +182,7 @@ class StorageManager:
                 
             if k_lower in current_keys:
                 current_keys.remove(k_lower)
-                deleted.append(keyword)
+                deleted.append(k_lower)
             else:
                 errors.append(f"'{keyword}' not found in '{target_category}'")
 
