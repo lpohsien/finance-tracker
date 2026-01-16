@@ -37,21 +37,42 @@ DEFAULT_BUDGETS = {
 
 # Categories
 DEFAULT_CATEGORIES = [
-    "Food",
-    "Snack",
-    "Transport",
-    "Shopping",
-    "Groceries",
-    "Donation",
-    "Entertainment",
-    "Travel",
-    "Health",
-    "Education",
-    "Subscription",
-    "Utilities",
-    "Tax",
-    "Insurance",
-    "Income",
-    "Disbursement",
-    "Other"
+    "food",
+    "snack",
+    "transport",
+    "shopping",
+    "groceries",
+    "donation",
+    "entertainment",
+    "travel",
+    "health",
+    "education",
+    "subscription",
+    "utilities",
+    "tax",
+    "insurance",
+    "income",
+    "disbursement",
+    "other"
 ]
+
+# Default Keywords
+DEFAULT_KEYWORDS = {
+    "food": ["food", "dinner", "lunch", "breakfast", "cafe", "restaurant"],
+    "snack": ["snack", "snacks", "coffee", "bubble tea", "tea", "drink", "drinks"],
+    "transport": ["transport", "grab", "gojek", "uber", "taxi", "train", "bus", "mrt", "concession", "smrt"],
+    "shopping": ["shopping", "shopee", "lazada", "amazon", "uniqlo"],
+    "groceries": ["groceries", "grocery", "fairprice", "cold storage", "giant", "market"],
+    "utilities": ["utilities", "singtel", "starhub", "m1", "electricity", "water"],
+    "donation": ["donation"],
+    "entertainment": ["entertainment"],
+    "travel": ["travel"],
+    "health": ["health"],
+    "education": ["education"],
+    "subscription": ["subscription"],
+    "tax": ["tax"],
+    "insurance": ["insurance"],
+    "income": ["income", "salary", "bonus"],
+    "disbursement": ["disbursement"],
+    "other": ["other"]
+}

@@ -10,9 +10,9 @@ class AnalyticsEngine:
 
     def get_total_income_expense(self) -> Dict[str, float]:
         # Disbursements are paid on behalf, count as negative expense
-        income = sum(t.amount for t in self.transactions if t.amount > 0 and t.category != "Disbursement")
-        expense = sum(t.amount for t in self.transactions if t.amount < 0 and t.category != "Disbursement")
-        disbursements = sum(t.amount for t in self.transactions if t.category == "Disbursement")
+        income = sum(t.amount for t in self.transactions if t.amount > 0 and t.category != "disbursement")
+        expense = sum(t.amount for t in self.transactions if t.amount < 0 and t.category != "disbursement")
+        disbursements = sum(t.amount for t in self.transactions if t.category == "disbursement")
         disbursed_expense = expense + disbursements
         return {"income": income, "expense": expense, "disbursed_expense": disbursed_expense}
 
@@ -21,7 +21,7 @@ class AnalyticsEngine:
         for t in self.transactions:
             if t.amount < 0:
                 breakdown[t.category] += t.amount
-            elif t.amount > 0 and t.category == "Disbursement":
+            elif t.amount > 0 and t.category == "disbursement":
                 breakdown[t.category] += t.amount
         return dict(breakdown)
 
@@ -31,7 +31,7 @@ class AnalyticsEngine:
             if t.amount < 0:
                 key = f"{t.bank or 'Unknown'} {t.account or 'Unknown'} ({t.type or 'Unknown'})"
                 breakdown[key] += t.amount
-            elif t.amount > 0 and t.category == "Disbursement":
+            elif t.amount > 0 and t.category == "disbursement":
                 key = f"{t.bank or 'Unknown'} {t.account or 'Unknown'} ({t.type or 'Unknown'})"
                 breakdown[key] += t.amount
         return dict(breakdown)
@@ -49,9 +49,9 @@ class AnalyticsEngine:
             if t.amount < 0:
                 category_spend[t.category] += abs(t.amount)
                 category_spend["Total"] += abs(t.amount)
-            elif t.amount > 0 and t.category == "Disbursement":
+            elif t.amount > 0 and t.category == "disbursement":
                 category_spend[t.category] += t.amount # Refunds reduce expense
-        category_spend["Total"] -= category_spend["Disbursement"] # Adjust total for disbursements
+        category_spend["Total"] -= category_spend["disbursement"] # Adjust total for disbursements
         
         total_budget = budgets.get('Total', 0)
         if total_budget > 0:
@@ -67,13 +67,13 @@ class AnalyticsEngine:
             if limit > 0:
                 percentage = (spent / limit) * 100
                 if percentage >= 100:
-                    alerts.append(f"🚨 Budget Exceeded for {category}: ${spent:.2f} / ${limit:.2f}")
+                    alerts.append(f"🚨 Budget Exceeded for {category.capitalize()}: ${spent:.2f} / ${limit:.2f}")
                 elif percentage >= 90:
-                    alerts.append(f"⚠️ 90% Budget Alert for {category}: ${spent:.2f} / ${limit:.2f}")
+                    alerts.append(f"⚠️ 90% Budget Alert for {category.capitalize()}: ${spent:.2f} / ${limit:.2f}")
                 elif percentage >= 75:
-                    alerts.append(f"⚠️ 75% Budget Alert for {category}: ${spent:.2f} / ${limit:.2f}")
+                    alerts.append(f"⚠️ 75% Budget Alert for {category.capitalize()}: ${spent:.2f} / ${limit:.2f}")
                 elif percentage >= 50:
-                    alerts.append(f"ℹ️ 50% Budget Alert for {category}: ${spent:.2f} / ${limit:.2f}")
+                    alerts.append(f"ℹ️ 50% Budget Alert for {category.capitalize()}: ${spent:.2f} / ${limit:.2f}")
         return alerts
 
     def filter_transactions_by_month(self, year: int, month: int) -> List[TransactionData]:

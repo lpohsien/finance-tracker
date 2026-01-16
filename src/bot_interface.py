@@ -57,7 +57,8 @@ class FinanceBot:
         logger.debug(f"Received message: {message_text} from user ID: {user_id}")
 
         user_categories = self.storage.get_user_categories(user_id)
-        parsed_data, err_msg = self.parser.parse_message(message_text, user_categories)
+        user_keywords = self.storage.get_user_keywords(user_id)
+        parsed_data, err_msg = self.parser.parse_message(message_text, user_categories, user_keywords)
         
         if parsed_data:
             self.storage.save_transaction(parsed_data, user_id)
@@ -85,7 +86,7 @@ class FinanceBot:
                 f"<b>Type</b>: {parsed_data.type}\n"
                 f"<b>Time</b>: {datetime.fromisoformat(parsed_data.timestamp).strftime('%y/%m/%d %H:%M')}\n"
                 f"<b>Amount</b>: SGD {parsed_data.amount:.2f}\n"
-                f"<b>Category</b>: {parsed_data.category}\n"
+                f"<b>Category</b>: {parsed_data.category.capitalize()}\n"
                 f"<b>Description</b>: <blockquote expandable>{parsed_data.description}</blockquote>\n"
             )
             
@@ -101,36 +102,6 @@ class FinanceBot:
             if err_msg:
                 await update.message.reply_text(err_msg, parse_mode='HTML')
 
-    async def set_budget_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        user_id = self._is_authorized(update)
-        if not user_id:
-            return
-
-        if not context.args or len(context.args) != 2:
-            await update.message.reply_text("❌ Usage: /setbudget <category>/'threshold' <amount>")
-            return
-        
-        category = str(context.args[0]).capitalize()
-
-        try:
-            amount = float(context.args[1])
-        except ValueError:
-            await update.message.reply_text("❌ Invalid amount. Please provide a number.")
-            return
-
-        if category.lower() == 'threshold':
-            self.storage.update_user_budget(user_id, "big_ticket", amount)
-            await update.message.reply_text(f"✅ Big ticket threshold set to SGD {amount:.2f}")
-        else:
-            category = category.capitalize()
-            user_categories = self.storage.get_user_categories(user_id)
-            if category not in user_categories and category != "Total":
-                await update.message.reply_text(f"❌ Category '{category}' not found in your category list. Use /add_cat to add it first.")
-                return
-            
-            self.storage.update_user_budget(user_id, category, amount)
-            await update.message.reply_text(f"✅ Budget for '{category}' set to SGD {amount:.2f}")
-
     async def add_category_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = self._is_authorized(update)
         if not user_id:
@@ -141,14 +112,24 @@ class FinanceBot:
             return
 
         categories_str = " ".join(context.args)
-        categories = [c.strip().capitalize() for c in categories_str.split(",") if c.strip()]
+        categories = [c.strip().lower() for c in categories_str.split(",") if c.strip()]
         
         if not categories:
             await update.message.reply_text("❌ No valid categories provided.")
             return
 
-        self.storage.add_user_categories(user_id, categories)
-        await update.message.reply_text(f"✅ Added categories: {', '.join(categories)}")
+        added, errors = self.storage.add_user_categories(user_id, categories)
+        
+        msg = ""
+        if added:
+            msg += f"✅ Added categories: {', '.join([c.capitalize() for c in added])}\n\n"
+        if errors:
+            msg += f"⚠️ Warnings:\n" + "\n".join(errors)
+            
+        if not msg:
+            msg = "No changes made."
+
+        await update.message.reply_text(msg)
 
     async def delete_category_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = self._is_authorized(update)
@@ -160,25 +141,25 @@ class FinanceBot:
             return
 
         categories_str = " ".join(context.args)
-        categories = [c.strip().capitalize() for c in categories_str.split(",") if c.strip()]
+        categories = [c.strip().lower() for c in categories_str.split(",") if c.strip()]
         
         if not categories:
             await update.message.reply_text("❌ No valid categories provided.")
             return
 
-        categories_to_delete = []
-        for category in categories:
-            if category in DEFAULT_CATEGORIES:
-                await update.message.reply_text(f"❌ Cannot delete default category '{category}'.")
-            else:
-                categories_to_delete.append(category)
-                
+        deleted, errors = self.storage.delete_user_categories(user_id, categories)
+        
+        msg = ""
+        if deleted:
+            msg += f"✅ Deleted categories: {', '.join([c.capitalize() for c in deleted])}\n\n"
+        if errors:
+            msg += f"⚠️ Warnings:\n" + "\n".join(errors)
+            
+        if not msg:
+            msg = "No changes made."
 
-        self.storage.delete_user_categories(user_id, categories_to_delete)
-        if not categories_to_delete:
-            await update.message.reply_text("❌ No categories were deleted.")
-        else:
-            await update.message.reply_text(f"✅ Deleted categories: {', '.join(categories_to_delete)}")
+        await update.message.reply_text(msg)
+    
     async def reset_category_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = self._is_authorized(update)
         if not user_id:
@@ -199,9 +180,122 @@ class FinanceBot:
 
         response = "📂 **Current Categories**\n"
         for cat in categories:
-            response += f"- {cat}\n"
+            response += f"- {cat.capitalize()}\n"
         
         await update.message.reply_text(response, parse_mode='Markdown')
+
+    async def view_keywords_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = self._is_authorized(update)
+        if not user_id: return
+
+        if not context.args:
+            await update.message.reply_text("❌ Usage: /viewkeys <category>/'all'")
+            return
+        
+        target = str(context.args[0]).lower()
+        keywords_map = self.storage.get_user_keywords(user_id)
+        
+        response = ""
+        if target == 'all':
+            response = "🔑 <b>All Keywords:</b>\n"
+            for cat, keys in keywords_map.items():
+                response += f"<b>{cat.capitalize()}</b>: {', '.join(keys)}\n"
+        else:
+            # Search case insensitive
+            found = False
+            for cat, keys in keywords_map.items():
+                if cat.lower() == target:
+                    response = f"🔑 <b>Keywords for {cat.capitalize()}:</b>\n{', '.join(keys)}"
+                    found = True
+                    break
+            if not found:
+                await update.message.reply_text(f"❌ Category '{context.args[0]}' not found. Please add the category first using /addcat.")
+                return
+        
+        await update.message.reply_text(response, parse_mode='HTML')
+
+    async def add_keyword_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = self._is_authorized(update)
+        if not user_id: return
+
+        if not context.args or len(context.args) < 2:
+            await update.message.reply_text("❌ Usage: /addkey <category> <key1, key2...>")
+            return
+            
+        category = context.args[0].lower()
+        keywords_str = " ".join(context.args[1:])
+        keywords = [k.strip() for k in keywords_str.split(",") if k.strip()]
+        
+        try:
+            added, errors = self.storage.add_user_keywords(user_id, category, keywords)
+            msg = ""
+            if added:
+                msg += f"✅ Added to {category.capitalize()}: {', '.join(added)}\n"
+            if errors:
+                msg += f"⚠️ Warnings:\n" + "\n".join(errors)
+            
+            if not msg:
+                msg = "No changes made."
+                
+            await update.message.reply_text(msg)
+        except ValueError as e:
+            await update.message.reply_text(f"❌ {e}")
+
+    async def del_keyword_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = self._is_authorized(update)
+        if not user_id: return
+
+        if not context.args or len(context.args) < 2:
+            await update.message.reply_text("❌ Usage: /delkey <category> <key1, key2...>")
+            return
+
+        category = context.args[0].lower()
+        keywords_str = " ".join(context.args[1:])
+        keywords = [k.strip() for k in keywords_str.split(",") if k.strip()]
+
+        try:
+            deleted, errors = self.storage.delete_user_keywords(user_id, category, keywords)
+            msg = ""
+            if deleted:
+                msg += f"✅ Deleted from {category.capitalize()}: {', '.join(deleted)}\n"
+            if errors:
+                msg += f"⚠️ Warnings:\n" + "\n".join(errors)
+            
+            if not msg:
+                msg = "No changes made."
+
+            await update.message.reply_text(msg)
+        except ValueError as e:
+            await update.message.reply_text(f"❌ {e}")
+
+    async def set_budget_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = self._is_authorized(update)
+        if not user_id:
+            return
+
+        if not context.args or len(context.args) != 2:
+            await update.message.reply_text("❌ Usage: /setbudget <category>/'threshold' <amount>")
+            return
+        
+        category = str(context.args[0])
+
+        try:
+            amount = float(context.args[1])
+        except ValueError:
+            await update.message.reply_text("❌ Invalid amount. Please provide a number.")
+            return
+
+        if category.lower() == 'threshold':
+            self.storage.update_user_budget(user_id, "big_ticket", amount)
+            await update.message.reply_text(f"✅ Big ticket threshold set to SGD {amount:.2f}")
+        else:
+            user_categories = self.storage.get_user_categories(user_id)
+            if category not in user_categories and category.lower() != "total":
+                await update.message.reply_text(f"❌ Category '{category.capitalize()}' not found in your category list. Use /add_cat to add it first.")
+                return
+            
+            self.storage.update_user_budget(user_id, category, amount)
+            await update.message.reply_text(f"✅ Budget for '{category.capitalize()}' set to SGD {amount:.2f}")
 
     async def reset_budget_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = self._is_authorized(update)
@@ -222,7 +316,7 @@ class FinanceBot:
         response = "📊 **Current Budgets**\n"
         if budgets:
             for category, amount in budgets.items():
-                response += f"- {category}: SGD {amount:.2f}\n"
+                response += f"- {category.capitalize()}: SGD {amount:.2f}\n"
         else:
             response += "No budgets configured.\n"
             
@@ -282,7 +376,7 @@ class FinanceBot:
         breakdown = list(analytics.get_category_breakdown().items())
         breakdown.sort(key=lambda x: x[1])
         for cat, amount in breakdown:
-            response += f"- {cat}: SGD {amount:.2f} ({abs(amount)/abs(totals['expense']) if totals['expense'] else 0:.1%})\n"
+            response += f"- {cat.capitalize()}: SGD {amount:.2f} ({abs(amount)/abs(totals['expense']) if totals['expense'] else 0:.1%})\n"
 
         response += "\n💳 **Account Breakdown**\n"
         account_breakdown = list(analytics.get_account_breakdown().items())
@@ -444,8 +538,13 @@ class FinanceBot:
 *Categories*
 /viewcat - View categories
 /addcat <cat1>, <cat2> - Add categories
-/deletecat <cat1>, <cat2> - Delete categories
+/delcat <cat1>, <cat2> - Delete categories
 /resetcat - Reset categories to default
+
+*Keywords*
+/viewkeys - View keywords
+/addkey <category> <keyword1>, <keyword2> - Add keywords
+/delkey <category> <keyword1>, <keyword2> - Delete keywords
 
 *Transactions*
 Simply forward or paste your bank transaction message.
@@ -481,7 +580,7 @@ Simply forward or paste your bank transaction message.
             resetbudget - reset all budgets to default values
             viewbudget - view all current budgets
             addcat - /addcat <cat1>, <cat2> add new categories
-            deletecat - /deletecat <cat1>, <cat2> delete categories
+            delcat - /delcat <cat1>, <cat2> delete categories
             resetcat - /resetcat categories to default
             viewcat - /viewcat all current categories
             <message> - Send a bank transaction message to log it
@@ -496,8 +595,11 @@ Simply forward or paste your bank transaction message.
             BotCommand("setbudget", "Set budget"),
             BotCommand("viewcat", "View categories"),
             BotCommand("addcat", "Add categories"),
-            BotCommand("deletecat", "Delete categories"),
+            BotCommand("delcat", "Delete categories"),
             BotCommand("resetcat", "Reset categories"),
+            BotCommand("viewkeys", "View keywords"),
+            BotCommand("addkey", "Add keywords"),
+            BotCommand("delkey", "Delete keywords"),
             BotCommand("delete", "Delete a transaction"),
             BotCommand("clear", "Delete all transactions"),
         ]
@@ -512,9 +614,12 @@ Simply forward or paste your bank transaction message.
         application.add_handler(CommandHandler("resetbudget", self.reset_budget_command))
         application.add_handler(CommandHandler("viewbudget", self.view_budget_command))
         application.add_handler(CommandHandler("addcat", self.add_category_command))
-        application.add_handler(CommandHandler("deletecat", self.delete_category_command))
+        application.add_handler(CommandHandler("delcat", self.delete_category_command))
         application.add_handler(CommandHandler("resetcat", self.reset_category_command))
         application.add_handler(CommandHandler("viewcat", self.view_category_command))
+        application.add_handler(CommandHandler("viewkeys", self.view_keywords_command))
+        application.add_handler(CommandHandler("addkey", self.add_keyword_command))
+        application.add_handler(CommandHandler("delkey", self.del_keyword_command))
         application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), self.handle_message))
 
         logger.info("Bot is polling...")

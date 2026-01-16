@@ -3,7 +3,7 @@ import logging
 import uuid
 from datetime import datetime
 from dateutil import parser as date_parser
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 from src.llm_helper import categorize_transaction
 from src.banks import UOBParser
 from src.models import TransactionData
@@ -16,7 +16,7 @@ class TransactionParser:
             "UOB": UOBParser(),
         }
 
-    def parse_message(self, full_message: str, categories_list: Optional[List] = None) -> Tuple[Optional[TransactionData], Optional[str]]:
+    def parse_message(self, full_message: str, categories_list: Optional[List] = None, keywords_map: Optional[Dict] = None) -> Tuple[Optional[TransactionData], Optional[str]]:
         """
         Parses the composite message from Apple Shortcuts.
         Format: "{Bank_Msg},{bank},{ISO_Timestamp},{Remarks}"
@@ -82,7 +82,7 @@ class TransactionParser:
             return None, "Invalid timestamp format"
 
         # Categorization
-        category = self._categorize(parsed_data, remarks, full_message, categories_list)
+        category = self._categorize(parsed_data, remarks, full_message, categories_list, keywords_map)
 
         # Description
         description = f"{remarks}" if remarks else ""
@@ -101,27 +101,21 @@ class TransactionParser:
 
         return parsed_data, status
 
-    def _categorize(self, parsed_data: TransactionData, remarks: str, full_message: str, categories_list: Optional[List[str]] = None) -> str:
+    def _categorize(self, parsed_data: TransactionData, remarks: str, full_message: str, categories_list: Optional[List[str]] = None, keywords_map: Optional[Dict] = None) -> str:
         # 1. Keyword based (Simple)
         description = parsed_data.description or ""
         text_to_check = (description + " " + remarks).lower()
 
-        if categories_list:
-             keywords = { cat: [cat.lower()] for cat in categories_list }
+        if keywords_map:
+            keywords = keywords_map
+        elif categories_list:
+            # Fallback if no keywords provided (should not happen with updated bot logic)
+            keywords = { cat: [cat.lower()] for cat in categories_list }
         else:
-             # Fallback if no categories list provided (should not happen with current bot logic)
-             keywords = {}
+            keywords = {}
 
         if "disbursement" in text_to_check:
-            return "Disbursement"
-        
-        # Add default keywords if category exists in user list
-        if "Food" in keywords: keywords["Food"].extend(["dinner", "lunch", "breakfast", "cafe", "restaurant", "mcdonald", "kfc", "food"])
-        if "Snack" in keywords: keywords["Snack"].extend(["snacks", "coffee", "bubble tea", "tea", "drink", "drinks"])
-        if "Transport" in keywords: keywords["Transport"].extend([ "grab", "gojek", "uber", "taxi", "train", "bus", "mrt", "concession", "smrt"])
-        if "Shopping" in keywords: keywords["Shopping"].extend(["shopee", "lazada", "amazon", "uniqlo"])
-        if "Groceries" in keywords: keywords["Groceries"].extend(["grocery", "fairprice", "cold storage", "giant", "market"])
-        if "Utilities" in keywords: keywords["Utilities"].extend(["singtel", "starhub", "m1", "electricity", "water"])
+            return "disbursement"
 
         for cat, words in keywords.items():
             if any(word in text_to_check for word in words):
