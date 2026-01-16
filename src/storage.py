@@ -94,7 +94,7 @@ class StorageManager:
 
     def get_user_keywords(self, user_id: int) -> Dict[str, List[str]]:
         config = self.get_user_config(user_id)
-        # get_user_config already handles migration via _migrate_keywords if missing
+        # get_user_config already handles migration by adding missing keywords
         return config.get("keywords", DEFAULT_KEYWORDS.copy())
 
     def add_user_keywords(self, user_id: int, category: str, keywords_to_add: List[str]) -> tuple[List[str], List[str]]:
