@@ -1,3 +1,8 @@
+<!-- 
+This specification is optimized for automated coding agents. 
+Instructions are precise. Follow file paths, json schemas, and library choices strictly.
+-->
+
 # Project Specification: Finance Tracker Web Application Migration
 
 ## 1. Overview
@@ -6,6 +11,8 @@ The goal is to transform the current Telegram-based Finance Tracker into a moder
 ## 2. Architecture
 
 ### 2.1. Tech Stack
+- **General Tooling**:
+    - **uv**: Use `uv` for high-performance Python package management and virtual environment handling.
 - **Frontend**: 
     - **Core**: React.js (via **Vite**) - Configured as a **Static Single Page Application (SPA)**.
     - **Language**: **TypeScript** (Strict mode) for type safety and better developer experience.
@@ -16,7 +23,7 @@ The goal is to transform the current Telegram-based Finance Tracker into a moder
 - **Backend API**: Python FastAPI. It is modern, high-performance, and auto-generates Swagger documentation. It aligns well with the existing Python codebase.
 - **Authentication**: JWT (JSON Web Tokens) with a secure password hashing mechanism (e.g., `passlib`, `bcrypt`).
 - **Storage**:
-    - **Database**: SQLite (or PostgreSQL) for all data persistence. This replaces the existing CSV file-based storage to improve concurrency, query performance, and data integrity.
+    - **Database**: SQLite (moving to `data/finance.db`) for all data persistence. This replaces the existing CSV file-based storage to improve concurrency, query performance, and data integrity.
         - `users` table: handling authentication (`username`, `password_hash`, `user_uuid`).
         - `transactions` table: storing transaction records linked to `user_uuid`.
         - `configuration` table: storing user settings (budgets, categories, keywords).
@@ -29,14 +36,17 @@ finance-tracker/
 │   ├── main.py         # Entry point
 │   ├── auth.py         # Authentication logic
 │   ├── routers/        # API Endpoints
+│   ├── models.py       # Pydantic models & DB Schemas
 │   └── dependencies.py # Dependency injection (e.g. get_current_user)
 ├── frontend/           # New: React Application
+├── scripts/            # New: Migration and utility scripts
+│   └── migrate_csv_to_sql.py
 ├── src/                # Existing core logic (refactored for reusability)
 │   ├── analytics.py    # Existing
 │   ├── parser.py       # Existing
-│   ├── storage.py      # Existing
+│   ├── storage.py      # Existing (Refactored to use SQL)
 │   └── ...
-├── data/               # Persistent data storage
+├── data/               # Persistent data storage (finance.db)
 └── docs/
 ```
 
@@ -60,18 +70,22 @@ Replaces `handle_message`, `/delete`, `/clear`.
 
 - **Parse & Add Transaction**: `POST /api/transactions/parse`
     - **Description**: This is the primary endpoint for the Web UI "Quick Add" and the **Apple Shortcut** integration.
-    - **Input**:
-        - `bank_message` (string): The raw transaction text from the bank.
-        - `bank_name` (string): e.g., "PayNow", "UOB", "DBS".
-        - `timestamp` (string): ISO format timestamp or similar.
-        - `remarks` (string, optional): User provided remarks.
+    - **Input (JSON strict)**:
+        ```json
+        {
+          "bank_message": "string (raw SMS text)",
+          "bank_name": "string (e.g. 'UOB')",
+          "timestamp": "ISO8601 string",
+          "remarks": "string (optional)"
+        }
+        ```
     - **Logic**:
-        - **API Level**: This endpoint **strictly requires structured JSON input**. It basically shifts the responsibility of "splitting the comma-separated string" to the client (Frontend or Shortcut).
-        - **Frontend Responsibility**: If the user uses the "Smart Parse" text box in the Web UI (entering a comma-separated string like `msg,bank,time,remark`), the Frontend must parse/split this string into the JSON fields before sending it to this API.
-    - **Requirement**: The response format must be friendly for display in Apple Shortcuts (e.g., a simple text summary field like `text_summary` in the JSON response, or just a clear success message).
-        - **Apple Shortcut Responsibility**: The Shortcut must be updated to construct this JSON object from its inputs instead of concatenating them into a string.
-        - **Backend Logic**: The backend passes these structured fields to the `TransactionParser`. The `TransactionParser` logic may need a new method (e.g., `parse_structured_data`) or an update to `parse_message` to handle pre-separated components, while retaining the regex/keyword logic for the `bank_message` content itself.
-    - **Output**: Parsed transaction details and any budget alerts.
+        - **API Level**: This endpoint **strictly requires structured JSON input**.
+        - **Clients (Frontend/Shortcut)**: Must parse raw text inputs into this JSON structure *before* sending.
+            - *Frontend*: If using "Smart Parse" text box, JS logic splits the comma-separated string `msg,bank,time,remark` into the JSON fields.
+            - *Shortcut*: The Shortcut must construct this JSON object from its inputs.
+        - **Backend Logic**: Passes fields to `TransactionParser`. The parser should be updated to handle pre-separated components via a new method (e.g., `parse_structured_data`) while reusing existing regex logic for the `bank_message` content.
+    - **Output**: Returns parsed transaction details and budget alerts. The response should include a simple `text_summary` field for Siri/Shortcuts to speak out.
 
 - **Manual Add Transaction**: `POST /api/transactions`
     - **Input**: JSON object with fields (amount, category, type, description, bank, timestamp).
@@ -124,8 +138,7 @@ Replaces `/export`.
 
 - **Export CSV**: `GET /api/export` (optional, default all).
     - **Output**: Downloadable CSV file stream.
-    - **Constraint**: The generated CSV **must be fully compatible** with the legacy CSV format (field names, order, formatting) used in the original `src/analytics.py`. This ensures users can still use offline scripts or tools designed for the CSV version
-    - **Output**: Downloadable CSV file stream.
+    - **Constraint**: The generated CSV **must be fully compatible** with the legacy CSV format (field names, order, formatting) used in the original `src/analytics.py`. This ensures users can still use offline scripts or tools designed for the CSV version.
 
 ## 4. Frontend Specifications
 
@@ -134,7 +147,10 @@ The frontend should be a Single Page Application (SPA).
 ### 4.1. Design Philosophy
 - **Aesthetic**: Modern, Clean, Dark/Light mode support.
 - **Tooling**:
-    - **uv**: Use `uv` (a modern, high-performance Python package installer) for all Python package management and virtual environment handling.
+    - **Vite**: Fast build tool.
+    - **npm/pnpm**: Frontend package management.
+    - **Tailwind CSS**: Utility-first CSS framework.
+    - **shadcn/ui**: Accessible, unopinionated component library.
 
 - **Minimalistic**: Avoid clutter. Key metrics should be visible at a glance.
 - **Snappy**: Optimistic UI updates (update UI immediately before API confirms) where safe.
@@ -148,6 +164,7 @@ The frontend should be a Single Page Application (SPA).
     - Summary Cards (Income, Expense, Remaining Budget).
     - Charts: Pie chart (Categories), Bar chart (Daily spending).
     - Recent Transactions list (Current month).
+    - Budget Overview/Alerts.
 3.  **Transactions**:
     - Full list with filtering (Date, Category, Search).
     - Edit/Delete actions.
@@ -170,7 +187,7 @@ The frontend should be a Single Page Application (SPA).
 1.  Initialize FastAPI project structure.
 2.  Implement `AuthService` (User DB management).
 3.  Wrap existing `StorageManager` logic into API dependencies.
-4.  Implement `POST /api/transactions/parse` to verify parser logic works via HTTP.
+4.  Implement `POST /api/transactions/parse` to ensure parser logic works via HTTP, so as to enable integration with Apple Shortcuts.
 
 ### Phase 2: Core Frontend
 1.  Scaffold React app.
@@ -182,8 +199,17 @@ The frontend should be a Single Page Application (SPA).
 2.  Implement Export functionality.
 3.  Test Apple Shortcut integration against `POST /api/transactions/parse`.
 
-## 6. Migration of storage.py`**: **Major Refactor Required**. Transition from CSV read/write to SQL Alchemy (or raw SQLite) patterns. Must include a migration script to import existing `.csv` transaction files into the new SQLite schema. The class interface should remain similar if possible to minimize disruption, but internal implementation will change entirely.
-- **`src/analytics.py`**: Refactor to support data fetching from the new SQL backend.
+## 6. Storage Migration Strategy
+- **`src/storage.py`**: **Major Refactor Required**.
+    - Transition from CSV read/write to **SQLAlchemy** (async preferred) or raw **SQLite** patterns.
+    - **Models**: structured tables for `User`, `Transaction`, `Budget`, `Category` are required.
+    - **Interface**: The class interface (`add_transaction`, `get_transactions`, etc.) should remain similar to minimize disruption to `main.py` consumers, but the internal implementation will change entirely.
+- **Migration Script (`scripts/migrate_csv_to_sql.py`)**:
+    - A standalone script is required.
+    - **Logic**: It must iterate through `data/<user_id>/transactions.csv` and `config.json` files.
+    - **Action**: Insert parsed data into the new SQLite database (`data/finance.db`).
+    - **Idempotency**: The script should be idempotent (safe to run multiple times).
+- **`src/analytics.py`**: Refactor to support data fetching from the new SQL backend (or modifying the SQL query to return data in the shape `AnalyticsEngine` expects).
 - **`src/bot_interface.py`**: This file will be *deprecated* or kept as a separate entry point if dual-support (Telegram + Web) is desired. The core logic inside `handle_message`, `stats_commands`, etc., should be extracted into service functions if not already clean, so both the Bot and the API can call them.
 - **`src/auth.py` (New)**: Implement User model and auth flow. Needs to handle the generation of unique IDs for new web users that are compatible with the folder structure (string-based IDs).
 
@@ -200,62 +226,47 @@ The User should be able to create a Shortcut that:
 ## 8. Documentation Requirements (README.md)
 The project `README.md` must be completely updated to reflect the new architecture. It should include clear, step-by-step guides for:
 
-- **Prerequisites**: Instructions to install `uv` (Python), Node.js, or Docker.
+- **Prerequisites**: Instructions to install `uv` (Python), Node.js, and Docker.
+- **Local Development**:
+    - Quick start for setting up the development environment usinng either host or docker.
     - **Backend**: Creating the virtual environment and installing dependencies using `uv` (`uv venv`, `uv pip install -r requirements.txt`), and running the FastAPI dev server.
     - **Frontend**: Installing node modules (`npm install`) and running the Vite dev server (`npm run dev`).
-    - **Database**: Instructions on how to initialize the SQLite database or run migrations.
-
-- **Local Development (Host)**:
-    - **Backend**: Creating the virtual environment, installing dependencies (`pip install -r requirements.txt`), and running the FastAPI dev server (`uvicorn api.main:app --reload`).
-    - **Frontend**: Installing node modules (`npm install`) and running the Vite dev server (`npm run dev`).
-    - **Database**: Instructions on how to initialize the SQLite database or run migrations.
-
-- **Local Development (Docker)**:
-    - Provide a comprehensive `Dockerfile` supporting a multi-stage build (Node build -> Python runtime).
-    - Ensure the Docker setup handles both frontend (npm build) and backend (python packages via `uv`) dependencies efficiently.
-
-- **GCP Deployment (Free Tier Optimization)**:
-    - **Build Process**: Building the static React assets (`npm run build`) and configuring FastAPI to serve the `dist/` folder as a static mount
-    - **Build Process**: Building the static React assets (`npm run build`) and configuring FastAPI to serve the `dist/` folder as a static mount (this avoids running a separate Node server in production).
-    - **Dockerfile**: Updating the `Dockerfile` to perform a multi-stage build:
-        1.  **Stage 1 (Node)**: Build React app to static files.
-        2.  **Stage 2 (Python)**: Copy static files to FastAPI directory and install Python dependencies.
-    - **Deploy**: Instructions for deploying the single container to Google Cloud Run or App Engine.
-    - **Environment Variables**: Listing all required env vars (SECRET_KEY, DATABASE_URL, ALLOWED_ORIGINS) and how to set them in the GCP console.
+    - **Database**: Instructions on how to initialize the SQLite database or run migrations via the `scripts/` folder.
+- **Production Build**: How to build the frontend and serve it via FastAPI.
 
 ## 9. Infrastructure Migration & Docker Workflow
-To support a seamlessly containerized workflow for both development and deployment, the codebase structure must be updated:
+To support a seamlessly containerized workflow for both development and deployment:
 
-1.  **Dependency Specification**:
-    -   **Backend**: Update the `pyproject.toml` (standard for `uv` and modern python) to define backend dependencies. Generate a `requirements.txt` from it for Docker compatibility if needed, or use `uv` directly in Docker.
-    -   **Frontend**: Ensure `package.json` and `package-lock.json` are in the root of the `frontend/` directory.
+### 9.1. Environment Variables (`.env`)
+The application must support the following configuration via `.env` file or environment injection:
+- `SECRET_KEY`: (Required) For JWT signing.
+- `ALGORITHM`: (Default: HS256)
+- `ACCESS_TOKEN_EXPIRE_MINUTES`: (Default: 30)
+- `DATABASE_URL`: (Default: `sqlite:///./data/finance.db`)
+- `CORS_ORIGINS`: Comma-separated list of allowed origins (e.g. `http://localhost:5173,https://myapp.com`).
 
-2.  **Docker Configuration (`Dockerfile`)**:
-    Implement a multi-stage build strategy in a single `Dockerfile` at the project root:
-    -   **Stage 1: Frontend Build (Node.js)**
-        -   Base image: `node:20-alpine` (or similar lightweight)
-        -   Copy `frontend/package*.json` -> `npm ci`
-        -   Copy `frontend/` source code -> `npm run build` (outputs to `frontend/dist/`)
-    -   **Stage 2: Backend Runtime (Python)**
-        -   Base image: `python:3.13-slim` (or 3.12)
-        -   Install `uv`: `pip install uv`
-        -   Copy `pyproject.toml` / `requirements.txt` -> `uv pip install --system -r requirements.txt`
-        -   Copy backend code (`api/`, `src/`) to `/app`.
-        -   **Critical**: Copy the build artifacts from Stage 1 (`/app/frontend/dist`) to `/app/static` (or where FastAPI serves static files).
-        -   Entrypoint: `uvicorn api.main:app --host 0.0.0.0 --port $PORT`
+### 9.2. Dependency Management
+-   **Backend**: Update the `pyproject.toml` (standard for `uv` and modern python) to define backend dependencies. Generate a `requirements.txt` only if strictly needed by PaaS, otherwise use `uv` in Docker.
+-   **Frontend**: Ensure `package.json` and `package-lock.json` are in the root of the `frontend/` directory.
 
-3.  **Local Development via Docker Compose (`docker-compose.yml`)**:
-    Create a `docker-compose.yml` to spin up the full stack locally without installing Python/Node on the host (optional but recommended):
-    -   **Service: `frontend`**:
-        -   Image: `node:20-alpine`
-        -   Command: `npm run dev -- --host`
-        -   Volumes: `./frontend:/app` (for hot reloading)
-    -   **Service: `backend`**:
-        -   Image: `python:3.11-slim`
-        -   Command: `uvicorn api.main:app --reload --host 0.0.0.0`
-        -   Volumes: `./src:/app/src`, `./api:/app/api`, `./data:/app/data` (persistence)
-    -   **Proxy/Network**: Ensure frontend requests to `/api` are proxied to the backend service.
+### 9.3. Docker Configuration (`Dockerfile`)
+Implement a multi-stage build strategy in a single `Dockerfile` at the project root:
+1.  **Stage 1: Frontend Build (Node.js)**
+    -   Base image: `node:20-alpine`
+    -   Copy `frontend/package*.json` -> `npm ci`
+    -   Copy `frontend/` source code -> `npm run build` (outputs to `frontend/dist/`)
+2.  **Stage 2: Backend Runtime (Python)**
+    -   Base image: `python:3.13-slim`
+    -   Install `uv`: `pip install uv`
+    -   Copy `pyproject.toml` -> `uv pip install --system -r pyproject.toml` (or requirements.txt)
+    -   Copy backend code (`api/`, `src/`) to `/app`.
+    -   **Critical**: Copy the build artifacts from Stage 1 (`/app/frontend/dist`) to `/app/static`.
+    -   Entrypoint: `uvicorn api.main:app --host 0.0.0.0 --port $PORT`
 
-4.  **Ignore Files**:
-    -   Update `.dockerignore` to exclude `node_modules`, `__pycache__`, `.git`, `venv`, etc., preventing context bloat.
+### 9.4. Local Development via Docker Compose
+Create a `docker-compose.yml` to spin up the full stack locally:
+-   **Service: `frontend`**: Image `node:20-alpine`, Command `npm run dev`, Volumes `./frontend:/app`.
+-   **Service: `backend`**: Image `python:3.13-slim`, Command `uvicorn api.main:app --reload`, Volumes `./src:/app/src`, `./data:/app/data`.
+-   **Proxy**: Configure Vite proxy or Nginx to route `/api` requests to `backend`.
+-   **Ignore Files**: Update `.dockerignore` (exclude `node_modules`, `__pycache__`, `venv`).
 

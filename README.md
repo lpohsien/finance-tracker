@@ -47,14 +47,14 @@ finance-tracker/
     ```
 5.  **Run the bot**:
     ```bash
-    python src/main.py
+    python -m src.main
     ```
 
 ## Testing
 
 Run the test suite using `pytest`:
 ```bash
-pytest tests/
+PYTHONPATH=. uv run pytest tests/
 ```
 
 ## Deployment on Google Cloud Platform (GCP) Free Tier
