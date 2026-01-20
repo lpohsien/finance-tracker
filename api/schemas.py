@@ -52,3 +52,8 @@ class KeywordAction(BaseModel):
 
 class APIKeyUpdate(BaseModel):
     api_key: str
+
+class AnalyticsAnalyzeRequest(BaseModel):
+    prompt: str
+    year: Optional[int] = None
+    month: Optional[int] = None

@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 from google import genai
 from src.config import GOOGLE_API_KEY, DEFAULT_CATEGORIES, LLM_MODEL
 import logging
@@ -44,15 +44,12 @@ def categorize_transaction(message: str, categories_list: Optional[List] = None,
     Return ONLY the category name. If you are unsure, return "Other".
     """
 
-    # logger.debug(f"LLM categorization prompt: {prompt}")
-
     try:
         response = client.models.generate_content(
             model=LLM_MODEL,
             contents=prompt
         )
         category = response.text.strip() if response and response.text else "Other"
-        # logger.debug(f"LLM categorization response: {category}")
 
         if category in categories_list:
             return category
@@ -64,7 +61,6 @@ def categorize_transaction(message: str, categories_list: Optional[List] = None,
 def llm_parse_bank_message(message: str, transaction_type: List[str] = [], api_key: Optional[str] = None) -> Tuple[Dict[str, str], Optional[str]]:
     """
     Uses Gemini to parse transaction details from a bank message.
-    Returns a dictionary with keys: type, amount, description, account, timestamp
     """
 
     client = _init_llm_client(api_key=api_key)
@@ -88,7 +84,6 @@ def llm_parse_bank_message(message: str, transaction_type: List[str] = [], api_k
     If non-optional fields cannot be determined, return "ERROR: " followed by stating which fields are missing.
     Do not format the response using markdown or code blocks.
     """
-    # logger.debug(f"LLM parsing prompt: {prompt}")
 
     try:
         response = client.models.generate_content(
@@ -96,7 +91,6 @@ def llm_parse_bank_message(message: str, transaction_type: List[str] = [], api_k
             contents=prompt
         )
         parsed_data = response.text.strip() if response and response.text else "{}"
-        # logger.debug(f"LLM parsing response: {parsed_data}")
 
         if parsed_data.startswith("ERROR:"):
             return {}, parsed_data
@@ -109,3 +103,51 @@ def llm_parse_bank_message(message: str, transaction_type: List[str] = [], api_k
     except Exception as e:
         logger.error(f"Error during LLM parsing: {e}")
         return {}, "LLM parsing error"
+
+def analyze_spending_habits(prompt_user: str, context_data: Dict[str, Any], api_key: Optional[str] = None) -> str:
+    """
+    Analyzes spending habits based on user prompt and aggregated context data.
+    context_data: { "stats": ..., "transactions_sample": ... }
+    """
+    client = _init_llm_client(api_key=api_key)
+
+    if not client:
+        return "AI analysis unavailable. Please check your API Key settings."
+
+    # Summarize context to avoid hitting token limits
+    stats = context_data.get("stats", {})
+    breakdown = stats.get("breakdown", {})
+    income = stats.get("income", 0)
+    expense = stats.get("expense", 0)
+
+    # Sort breakdown
+    sorted_breakdown = sorted(breakdown.items(), key=lambda x: abs(x[1]), reverse=True)
+    breakdown_str = "\n".join([f"- {k}: {v:.2f}" for k, v in sorted_breakdown])
+
+    context_str = f"""
+    Total Income: {income:.2f}
+    Total Expense: {expense:.2f}
+    Category Breakdown:
+    {breakdown_str}
+    """
+
+    full_prompt = f"""
+    You are a personal finance assistant. Analyze the user's spending data and answer their question.
+
+    Spending Context (Current Period):
+    {context_str}
+
+    User Question/Prompt: "{prompt_user}"
+
+    Provide a helpful, insightful, and concise response. Use markdown formatting.
+    """
+
+    try:
+        response = client.models.generate_content(
+            model=LLM_MODEL,
+            contents=full_prompt
+        )
+        return response.text if response and response.text else "No response generated."
+    except Exception as e:
+        logger.error(f"Error during analysis: {e}")
+        return f"Error generating analysis: {str(e)}"

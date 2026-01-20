@@ -15,182 +15,96 @@ Requires-Dist: uvicorn[standard]>=0.27.0; extra == "backend"
 Requires-Dist: sqlalchemy>=2.0.25; extra == "backend"
 Requires-Dist: pydantic>=2.6.0; extra == "backend"
 Requires-Dist: python-jose[cryptography]>=3.3.0; extra == "backend"
-Requires-Dist: passlib[bcrypt]>=1.7.4; extra == "backend"
+Requires-Dist: passlib[argon2]>=1.7.4; extra == "backend"
 Requires-Dist: python-multipart>=0.0.9; extra == "backend"
 Requires-Dist: cryptography>=42.0.0; extra == "backend"
 
-# Finance Tracker Telegram Bot
+# Finance Tracker Web App
 
-A Telegram bot for tracking personal finances, designed to parse UOB transaction messages forwarded via Apple Shortcuts.
+A modern, full-stack finance tracker application featuring a React frontend, FastAPI backend, and Telegram Bot integration.
 
 ## Features
 
-*   **Automated Parsing**: Extracts transaction details from UOB SMS (PayNow, Card).
-*   **Smart Categorization**: Uses keywords and Google Gemini LLM to categorize transactions.
-*   **Analytics**: Provides income/expense totals, category breakdowns, and budget alerts.
-*   **Data Persistence**: Saves transactions to a CSV file (easily migratable).
-*   **Secure**: Whitelists users to prevent unauthorized access.
+- **Dashboard**: Visual overview of income, expenses, and budget status.
+- **Transactions**: Add, view, filter, and delete transactions.
+- **Smart Parse**: Paste bank SMS/Notifications to automatically extract details (Regex + LLM).
+- **Telegram Bot**: Continue using the existing bot alongside the web app.
+- **Apple Shortcuts**: Integrate with Siri/Shortcuts via API Token.
+- **Secure**: JWT Authentication and encrypted API Key storage.
 
-## Project Structure
+## Tech Stack
 
-```
-finance-tracker/
-├── src/              # Source code
-├── tests/            # Unit tests
-├── data/             # Data storage (CSV)
-├── Dockerfile        # Docker configuration
-├── bot.service       # Systemd service file
-├── pyproject.toml    # Dependencies
-└── README.md         # Documentation
-```
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS, shadcn/ui, TanStack Query.
+- **Backend**: FastAPI, SQLAlchemy (SQLite), Pydantic.
+- **Deployment**: Docker (Multi-stage build).
+
+## Prerequisites
+
+- Docker & Docker Compose
+- Python 3.13+ (for local dev)
+- Node.js 20+ (for local dev)
+
+## Quick Start (Docker)
+
+1. **Clone the repo**
+2. **Set up Environment**:
+   Create a `.env` file (see `.env.example`).
+   ```bash
+   SECRET_KEY=your_secret_key
+   ENCRYPTION_KEY=your_fernet_key # Generate via python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+   ```
+3. **Run**:
+   ```bash
+   docker-compose up --build
+   ```
+   - Web App: `http://localhost:5173` (Dev) or `http://localhost:8000` (Prod build via backend)
+   - API Docs: `http://localhost:8000/docs`
 
 ## Local Development
 
-1.  **Prerequisites**: Python 3.13+, `uv` (optional but recommended).
-2.  **Clone the repository**:
-    ```bash
-    git clone <repo_url>
-    cd finance-tracker
-    ```
-3.  **Install dependencies**:
-    ```bash
-    pip install .
-    # OR with uv
-    uv pip install .
-    ```
-4.  **Configure Environment**:
-    Create a `.env` file in the root directory:
-    ```ini
-    TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-    ALLOWED_USER_IDS=123456789,987654321
-    GOOGLE_API_KEY=your_gemini_api_key
-    BIG_TICKET_THRESHOLD=100.0
-    ```
-5.  **Run the bot**:
-    ```bash
-    python -m src.main
-    ```
+### Backend
 
-## Testing
+1. Install `uv`: `pip install uv`
+2. Create venv: `uv venv` && `source .venv/bin/activate`
+3. Install deps: `uv pip install -e .[backend]`
+4. Run:
+   ```bash
+   uvicorn api.main:app --reload
+   ```
 
-Run the test suite using `pytest`:
-```bash
-PYTHONPATH=. uv run pytest tests/
-```
+### Frontend
 
-## Deployment on Google Cloud Platform (GCP) Free Tier
+1. `cd frontend`
+2. `npm install`
+3. `npm run dev`
 
-Target: **Compute Engine e2-micro** instance.
+## Migration
 
-### 1. Create VM Instance
-*   Go to GCP Console -> Compute Engine -> VM Instances.
-*   Click **Create Instance**.
-*   **Name**: `finance-bot`
-*   **Region**: `us-central1` (or other free tier regions like `us-west1`, `us-east1`).
-*   **Machine Type**: `e2-micro` (2 vCPU, 1 GB memory).
-*   **Boot Disk**: Standard Persistent Disk (30GB is free). OS: Debian or Ubuntu.
-*   **Firewall**: Allow HTTP/HTTPS (optional, bot uses polling so no inbound ports needed).
-*   Click **Create**.
+To migrate legacy CSV data to the new SQLite database:
 
-### 2. Setup VM
-SSH into the VM:
-```bash
-# Update system
-sudo apt update && sudo apt upgrade -y
+1. Ensure the server is stopped or DB is accessible.
+2. Run the migration script:
+   ```bash
+   python scripts/migrate_csv_to_sql.py
+   ```
+   This will scan `data/` for user folders (e.g. `12345/`) and import them into `finance.db`.
 
-# Install Python and pip (if not latest)
-sudo apt install python3-pip python3-venv git -y
+## Apple Shortcuts Setup
 
-# Install uv (optional, makes things faster)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-source $HOME/.cargo/env
-```
-
-### 3. Deploy Code
-```bash
-# Clone repo
-git clone https://github.com/lpohsien/finance-tracker.git finance-tracker
-cd finance-tracker
-
-uv sync
-```
-
-### 4. Configure Environment
-Create the `.env` file:
-```bash
-nano .env
-# Paste your environment variables
-```
-
-### 5. Setup Systemd Service
-Edit the `bot.service` file to match your paths (replace `erwinli` with your username):
-```bash
-nano bot.service
-# Update User=your_username
-# Update WorkingDirectory=/home/your_username/finance-tracker
-# Update ExecStart=/home/your_username/finance-tracker/venv/bin/python /home/your_username/finance-tracker/src/main.py
-# Update EnvironmentFile=/home/your_username/finance-tracker/.env
-```
-
-Copy to systemd directory and enable:
-```bash
-sudo cp bot.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable bot.service
-sudo systemctl start bot.service
-```
-
-### 6. Verify
-Check status:
-```bash
-sudo systemctl status bot.service
-```
-View logs:
-```bash
-journalctl -u bot.service -f
-```
-
-## Usage
-
-Send a message to the bot in the format:
-`{Bank_Message},{Bank_Name},{ISO_Timestamp},{Remarks}`
-
-**Example:**
-`You made a...ending 1234...,UOB,2025-12-30T12:00:00+08:00,Lunch`
-
-### Commands
-
-**Basics**
-*   `/start`: Initialize or authorize the bot.
-*   `/help`: Show the user manual.
-
-**Statistics**
-*   `/stats`: View statistics for the current month.
-*   `/stats <year> <month>`: View statistics for a specific month.
-*   `/stats all`: View all-time statistics.
-*   `/daily`: View daily breakdown for the current month.
-*   `/daily <year> <month>`: View daily breakdown for a specific month.
-*   `/export`: Export current month's transactions to CSV.
-*   `/export <year> <month>`: Export specific month's transactions to CSV.
-
-**Budgeting**
-*   `/viewbudget`: View current budgets.
-*   `/setbudget <category> <amount>`: Set a monthly budget for a specific category.
-*   `/setbudget threshold <amount>`: Set the threshold for "Big Ticket" alerts.
-*   `/resetbudget`: Reset all budgets to default values.
-
-**Categories**
-*   `/viewcat`: View all available categories.
-*   `/addcat <cat1>, <cat2>`: Add new categories (case insensitive).
-*   `/delcat <cat1>, <cat2>`: Delete custom categories (default categories cannot be deleted).
-*   `/resetcat`: Reset categories to the default list.
-
-**Keywords**
-*   `/viewkeys [category]`: View keywords for a specific category (or 'all').
-*   `/addkey <category> <kw1>, <kw2>`: Add keywords to a category (case insensitive).
-*   `/delkey <category> <kw1>, <kw2>`: Delete keywords from a category.
-
-**Transactions**
-*   Simply forward or paste your bank transaction message in the required format to log it.
-*   `/delete <id>`: Permanently delete a transaction by its ID.
-*   `/clear`: Permanently delete **ALL** transactions (Use with caution!).
+1. Log in to the Web App.
+2. Go to **Settings**.
+3. Click "Generate Export Token".
+4. Copy the token.
+5. In your Shortcut:
+   - URL: `https://<your-domain>/api/transactions/parse`
+   - Method: POST
+   - Headers: `Authorization: Bearer <your-token>`
+   - Body (JSON):
+     ```json
+     {
+       "bank_message": "Shortcut Input",
+       "bank_name": "UOB",
+       "timestamp": "Current Date (ISO)",
+       "remarks": "Optional"
+     }
+     ```

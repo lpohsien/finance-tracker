@@ -7,6 +7,7 @@ src/llm_helper.py
 src/main.py
 src/models.py
 src/parser.py
+src/security.py
 src/storage.py
 src/utils.py
 src/banks/__init__.py
@@ -19,6 +20,7 @@ src/finance_tracker.egg-info/requires.txt
 src/finance_tracker.egg-info/top_level.txt
 tests/test_analytics.py
 tests/test_analytics_account.py
+tests/test_analytics_api.py
 tests/test_categories.py
 tests/test_keywords.py
 tests/test_llm_parser.py

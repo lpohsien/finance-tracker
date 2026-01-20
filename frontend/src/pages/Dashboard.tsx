@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Overview from '@/components/Overview';
 import Transactions from '@/components/Transactions';
 import Settings from '@/components/Settings';
+import Analysis from '@/components/Analysis';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -24,12 +25,17 @@ export default function Dashboard() {
         <Tabs defaultValue="overview" className="space-y-4">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="analysis">Analysis</TabsTrigger>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4">
             <Overview />
+          </TabsContent>
+
+          <TabsContent value="analysis" className="space-y-4">
+            <Analysis />
           </TabsContent>
 
           <TabsContent value="transactions" className="space-y-4">

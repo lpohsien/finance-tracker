@@ -21,28 +21,29 @@ export default function Transactions() {
 
   const parseMutation = useMutation({
     mutationFn: async (text: string) => {
-      // Split from the END since bank message may contain commas
-      // Format: bank_message,bank_name,timestamp,remarks
-      // We know: remarks, timestamp, and bank_name don't contain commas
-      // So split by comma, take last 3 parts, and join the rest as bank_message
+      // Split logic (Legacy shortcut format: msg,bank,time,remark)
+      // BUT here we might just paste the raw bank message if we support "Smart Parse" via LLM fully?
+      // The backend 'parse' endpoint expects structured data.
+      // If the user pastes raw text, we might want to let the backend handle it?
+      // But the backend `TransactionParser` expects {bank_message, bank_name, timestamp, remarks}.
+      // If the user just pastes "You paid $5 at McD", we don't have bank_name or timestamp.
+      // We need a proper form.
+
+      // For now, let's implement the "Add Transaction" button that opens a dialog (or simple form)
+      // I'll assume the input is the legacy CSV-like string for "Smart Parse" as per spec?
+      // Spec: "Tab 1: Smart Parse: Text area to paste bank SMS/Text."
+      // Spec: "Frontend: If using 'Smart Parse' text box, JS logic splits the comma-separated string msg,bank,time,remark"
 
       const parts = text.split(',');
       if (parts.length < 3) {
         throw new Error("Format: message,bank,timestamp,remarks");
       }
 
-      // Extract from the end: remarks (optional), timestamp, bank_name
-      const remarks = parts.length >= 4 ? parts.pop()!.trim() : '';
-      const timestamp = parts.pop()!.trim();
-      const bank_name = parts.pop()!.trim();
-      // Everything remaining is the bank_message
-      const bank_message = parts.join(',').trim();
-
       const payload = {
-        bank_message,
-        bank_name,
-        timestamp,
-        remarks
+        bank_message: parts[0].trim(),
+        bank_name: parts[1].trim(),
+        timestamp: parts[2].trim(),
+        remarks: parts[3]?.trim() || ''
       };
 
       return api.post('/api/transactions/parse', payload);
@@ -94,21 +95,9 @@ export default function Transactions() {
         <CardHeader>
             <div className="flex justify-between">
                 <CardTitle>Recent Transactions</CardTitle>
-                <Button variant="outline" size="sm" onClick={async () => {
-                  try {
-                    const response = await api.get('/api/transactions/export', { responseType: 'blob' });
-                    const url = window.URL.createObjectURL(new Blob([response.data]));
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.setAttribute('download', 'transactions.csv');
-                    document.body.appendChild(link);
-                    link.click();
-                    link.remove();
-                    window.URL.revokeObjectURL(url);
-                  } catch (err) {
-                    console.error('Export failed:', err);
-                  }
-                }}>Export CSV</Button>
+                <a href="/api/transactions/export" download>
+                    <Button variant="outline" size="sm">Export CSV</Button>
+                </a>
             </div>
         </CardHeader>
         <CardContent>
@@ -116,7 +105,6 @@ export default function Transactions() {
             <table className="w-full text-sm text-left">
               <thead className="text-xs text-gray-700 uppercase bg-gray-50">
                 <tr>
-                  <th className="px-4 py-2">ID</th>
                   <th className="px-4 py-2">Date</th>
                   <th className="px-4 py-2">Bank</th>
                   <th className="px-4 py-2">Description</th>
@@ -128,7 +116,6 @@ export default function Transactions() {
               <tbody>
                 {transactions.map((t: any) => (
                   <tr key={t.id} className="bg-white border-b">
-                    <td className="px-4 py-2">{t.id}</td>
                     <td className="px-4 py-2">{new Date(t.timestamp).toLocaleDateString()}</td>
                     <td className="px-4 py-2">{t.bank}</td>
                     <td className="px-4 py-2">{t.description}</td>
