@@ -1,14 +1,15 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import path from 'path'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig(() => {
-  const apiUrl = process.env.VITE_API_URL || 'http://127.0.0.1:8000'
-  console.log('Proxy target:', apiUrl)
+  const apiUrl = process.env.VITE_API_URL || 'http://127.0.0.1:8000';
   
   return {
-    plugins: [react()],
+    plugins: [react(), tailwindcss()],
+    base: '/', // Ensures asset paths in index.html start with /assets/
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
@@ -25,6 +26,10 @@ export default defineConfig(() => {
           changeOrigin: true,
         }
       }
+    },
+    build: {
+      outDir: 'dist',
+      emptyOutDir: true,
     }
-  }
-})
+  };
+});
