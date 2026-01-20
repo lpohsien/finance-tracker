@@ -3,7 +3,7 @@ import logging
 import uuid
 from datetime import datetime
 from dateutil import parser as date_parser
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Tuple, Dict, Any
 from src.llm_helper import categorize_transaction
 from src.banks import UOBParser
 from src.models import TransactionData
@@ -16,7 +16,7 @@ class TransactionParser:
             "UOB": UOBParser(),
         }
 
-    def parse_message(self, full_message: str, categories_list: Optional[List] = None, keywords_map: Optional[Dict] = None) -> Tuple[Optional[TransactionData], Optional[str]]:
+    def parse_message(self, full_message: str, categories_list: Optional[List] = None, keywords_map: Optional[Dict] = None, api_key: Optional[str] = None) -> Tuple[Optional[TransactionData], Optional[str]]:
         """
         Parses the composite message from Apple Shortcuts.
         Format: "{Bank_Msg},{bank},{ISO_Timestamp},{Remarks}"
@@ -24,7 +24,6 @@ class TransactionParser:
         # Split the message. We expect the ISO timestamp to be the anchor.
         # Regex to find the ISO timestamp in the middle
         # 2025-12-28T15:57:31+08:00
-        status = None
         split_pattern = re.compile(r"(.*),(\w+),(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}),(.*)", re.DOTALL)
         match = split_pattern.match(full_message)
         
@@ -32,10 +31,28 @@ class TransactionParser:
             logger.error(f"Failed to split message: {full_message}")
             return None, "Invalid message format"
 
-        bank_msg = match.group(1).strip()
-        bank_name = match.group(2).strip()
-        shortcut_timestamp_str = match.group(3).strip()
-        remarks = match.group(4).strip()
+        data = {
+            "bank_message": match.group(1).strip(),
+            "bank_name": match.group(2).strip(),
+            "timestamp": match.group(3).strip(),
+            "remarks": match.group(4).strip()
+        }
+
+        return self.parse_structured_data(data, categories_list, keywords_map, api_key, full_message=full_message)
+
+    def parse_structured_data(self, data: Dict[str, Any], categories_list: Optional[List] = None, keywords_map: Optional[Dict] = None, api_key: Optional[str] = None, full_message: Optional[str] = None) -> Tuple[Optional[TransactionData], Optional[str]]:
+        """
+        Parses structured JSON input.
+        """
+        bank_msg = data.get("bank_message", "").strip()
+        bank_name = data.get("bank_name", "").strip()
+        shortcut_timestamp_str = data.get("timestamp", "").strip()
+        remarks = data.get("remarks", "").strip()
+
+        if not full_message:
+             full_message = f"{bank_msg},{bank_name},{shortcut_timestamp_str},{remarks}"
+
+        status = None
 
         # Select parser based on bank name
         parser = self.bank_parsers.get(bank_name)
@@ -50,7 +67,7 @@ class TransactionParser:
             status = f"Warning: No parsing rules matched for bank message: <blockquote expandable>{bank_msg}</blockquote>"
 
             # If no parsing rules matched, use LLM-based parsing
-            parsed_data, llm_err = parser.llm_parse(bank_msg)
+            parsed_data, llm_err = parser.llm_parse(bank_msg, api_key=api_key)
             if not parsed_data:
                 return None, f"LLM-parsing failed for <blockquote expandable>{llm_err}</blockquote>. Full message: <pre>{bank_msg}</pre>"
             
@@ -68,7 +85,7 @@ class TransactionParser:
                 logger.error(f"Failed to compare timestamps: {e}")
                 # keep existing status
 
-        # Ensure bank field is correct (especially if LLM parsed it as generic)
+        # Ensure bank field is correct
         if parsed_data.bank == "LLM" or not parsed_data.bank:
             parsed_data.bank = bank_name
         elif parsed_data.bank != bank_name:
@@ -82,7 +99,7 @@ class TransactionParser:
             return None, "Invalid timestamp format"
 
         # Categorization
-        category = self._categorize(parsed_data, remarks, full_message, categories_list, keywords_map)
+        category = self._categorize(parsed_data, remarks, full_message, categories_list, keywords_map, api_key=api_key)
 
         # Description
         description = f"{remarks}" if remarks else ""
@@ -95,13 +112,13 @@ class TransactionParser:
 
         if status:
             if parsed_data.status:
-                parsed_data.status += " | " + status  # Assigning status to the object as requested
+                parsed_data.status += " | " + status
             else:
                 parsed_data.status = status
 
         return parsed_data, status
 
-    def _categorize(self, parsed_data: TransactionData, remarks: str, full_message: str, categories_list: Optional[List[str]] = None, keywords_map: Optional[Dict] = None) -> str:
+    def _categorize(self, parsed_data: TransactionData, remarks: str, full_message: str, categories_list: Optional[List[str]] = None, keywords_map: Optional[Dict] = None, api_key: Optional[str] = None) -> str:
         # 1. Keyword based (Simple)
         description = parsed_data.description or ""
         text_to_check = (description + " " + remarks).lower()
@@ -109,7 +126,6 @@ class TransactionParser:
         if keywords_map:
             keywords = keywords_map
         elif categories_list:
-            # Fallback if no keywords provided (should not happen with updated bot logic)
             keywords = { cat: [cat.lower()] for cat in categories_list }
         else:
             keywords = {}
@@ -122,4 +138,4 @@ class TransactionParser:
                 return cat
 
         # 2. LLM Fallback
-        return categorize_transaction(full_message, categories_list)
+        return categorize_transaction(full_message, categories_list, api_key=api_key)

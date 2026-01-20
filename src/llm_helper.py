@@ -2,23 +2,31 @@ from typing import Dict, List, Optional, Tuple
 from google import genai
 from src.config import GOOGLE_API_KEY, DEFAULT_CATEGORIES, LLM_MODEL
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
-def _init_llm_client(model: str = LLM_MODEL):
-    if GOOGLE_API_KEY:
-        client = genai.Client(api_key=GOOGLE_API_KEY)
-    else:
-        logger.warning("GOOGLE_API_KEY not set. LLM categorization will be disabled.")
-        client = None
-    return client
+def _init_llm_client(api_key: Optional[str] = None, model: str = LLM_MODEL):
+    # Prefer passed api_key, fall back to global config
+    key_to_use = api_key if api_key else GOOGLE_API_KEY
 
-def categorize_transaction(message: str, categories_list: Optional[List] = None) -> str:
+    if key_to_use:
+        try:
+            client = genai.Client(api_key=key_to_use)
+            return client
+        except Exception as e:
+            logger.error(f"Failed to initialize LLM client: {e}")
+            return None
+    else:
+        logger.warning("GOOGLE_API_KEY not set (neither per-user nor global). LLM features disabled.")
+        return None
+
+def categorize_transaction(message: str, categories_list: Optional[List] = None, api_key: Optional[str] = None) -> str:
     """
     Uses Gemini to categorize a transaction based on the message and remarks.
     """
 
-    client = _init_llm_client()
+    client = _init_llm_client(api_key=api_key)
 
     if not client:
         return "Uncategorized"
@@ -36,7 +44,7 @@ def categorize_transaction(message: str, categories_list: Optional[List] = None)
     Return ONLY the category name. If you are unsure, return "Other".
     """
 
-    logger.info(f"LLM categorization prompt: {prompt}")
+    # logger.debug(f"LLM categorization prompt: {prompt}")
 
     try:
         response = client.models.generate_content(
@@ -44,7 +52,7 @@ def categorize_transaction(message: str, categories_list: Optional[List] = None)
             contents=prompt
         )
         category = response.text.strip() if response and response.text else "Other"
-        logger.info(f"LLM categorization response: {category}")
+        # logger.debug(f"LLM categorization response: {category}")
 
         if category in categories_list:
             return category
@@ -53,16 +61,16 @@ def categorize_transaction(message: str, categories_list: Optional[List] = None)
         logger.error(f"Error during LLM categorization: {e}")
         return "Uncategorized"
     
-def llm_parse_bank_message(message: str, transaction_type: List[str] = []) -> Tuple[Dict[str, str], Optional[str]]:
+def llm_parse_bank_message(message: str, transaction_type: List[str] = [], api_key: Optional[str] = None) -> Tuple[Dict[str, str], Optional[str]]:
     """
     Uses Gemini to parse transaction details from a bank message.
     Returns a dictionary with keys: type, amount, description, account, timestamp
     """
 
-    client = _init_llm_client()
+    client = _init_llm_client(api_key=api_key)
 
     if not client:
-        return {}, "LLM client not initialized"
+        return {}, "LLM client not initialized (missing API key)"
 
     prompt = f"""
     You are a financial assistant. Parse the following bank message and extract the following details if it is a transaction:
@@ -80,7 +88,7 @@ def llm_parse_bank_message(message: str, transaction_type: List[str] = []) -> Tu
     If non-optional fields cannot be determined, return "ERROR: " followed by stating which fields are missing.
     Do not format the response using markdown or code blocks.
     """
-    logger.info(f"LLM parsing prompt: {prompt}")
+    # logger.debug(f"LLM parsing prompt: {prompt}")
 
     try:
         response = client.models.generate_content(
@@ -88,12 +96,11 @@ def llm_parse_bank_message(message: str, transaction_type: List[str] = []) -> Tu
             contents=prompt
         )
         parsed_data = response.text.strip() if response and response.text else "{}"
-        logger.info(f"LLM parsing response: {parsed_data}")
+        # logger.debug(f"LLM parsing response: {parsed_data}")
 
         if parsed_data.startswith("ERROR:"):
             return {}, parsed_data
 
-        import json
         parsed_dict = json.loads(parsed_data)
         if not parsed_dict:
             return {}, "LLM failed to respond with valid data"

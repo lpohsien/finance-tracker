@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./data/finance.db
+      - SECRET_KEY=dev_secret_key
+      - ENCRYPTION_KEY=dev_encryption_key_needs_fernet_valid_key
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:8000
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+
+  # For local dev only (Hot Reload Frontend)
+  frontend-dev:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    command: sh -c "npm install && npm run dev -- --host"
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://backend:8000
