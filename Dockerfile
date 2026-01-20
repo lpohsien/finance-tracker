@@ -1,23 +1,38 @@
-FROM python:3.13-slim
+# Stage 1: Build Frontend
+FROM node:20-alpine as frontend-build
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
 
+# Stage 2: Runtime
+FROM python:3.13-slim
 WORKDIR /app
 
 # Install uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+RUN pip install uv
 
-# Copy project files
-COPY pyproject.toml .
-COPY src/ src/
-COPY README.md .
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies
-RUN uv pip install --system .
+# Install python dependencies
+COPY pyproject.toml ./
+RUN uv pip install --system --no-cache -e .[backend]
 
-# Create data directory
-RUN mkdir -p data
+# Copy Backend Code
+COPY api/ ./api/
+COPY src/ ./src/
+COPY scripts/ ./scripts/
 
-# Set environment variables
+# Copy Frontend Build
+COPY --from=frontend-build /app/frontend/dist ./frontend/dist
+
+# Env variables
 ENV PYTHONPATH=/app
+ENV PORT=8000
 
-# Run the bot
-CMD ["python", "src/main.py"]
+# Run
+CMD ["sh", "-c", "uvicorn api.main:app --host 0.0.0.0 --port $PORT"]
