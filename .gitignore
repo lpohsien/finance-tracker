@@ -5,3 +5,6 @@ __pycache__/
 venv/
 data/
 .pytest_cache/
+uv.lock
+*.log
+.DS_Store
