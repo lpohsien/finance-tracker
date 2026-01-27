@@ -344,6 +344,29 @@ class StorageManager:
                 ))
             return transactions
 
+    def get_transaction(self, transaction_id: str, user_id: Any) -> Optional[TransactionData]:
+        with self._get_db() as db:
+            user = self._get_user(db, user_id)
+            tx = db.query(DBTransaction).filter(
+                DBTransaction.id == transaction_id,
+                DBTransaction.user_id == user.id
+            ).first()
+            
+            if tx:
+                return TransactionData(
+                    id=tx.id,
+                    type=tx.type,
+                    amount=tx.amount,
+                    description=tx.description,
+                    bank=tx.bank,
+                    account=tx.account,
+                    timestamp=tx.timestamp.isoformat(),
+                    category=tx.category,
+                    raw_message=tx.raw_message,
+                    status=tx.status
+                )
+            return None
+
     def delete_transaction(self, transaction_id: str, user_id: Any) -> bool:
         with self._get_db() as db:
             user = self._get_user(db, user_id)

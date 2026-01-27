@@ -56,6 +56,8 @@ DEFAULT_CATEGORIES = [
     "other"
 ]
 
+TRANSACTION_TYPES = ["Card", "PayNow", "Transfer", "NETS QR"]
+
 # Default Keywords
 DEFAULT_KEYWORDS = {
     "food": ["food", "dinner", "lunch", "breakfast", "cafe", "restaurant"],

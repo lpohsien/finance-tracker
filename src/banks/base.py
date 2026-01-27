@@ -5,18 +5,13 @@ from dateutil import tz
 from dateutil import parser as date_parser
 import uuid
 from src.models import TransactionData
+from src.config import TRANSACTION_TYPES
 
 class BaseBankParser(ABC):
 
     TIME_PARSE_WARNING = "TIME_PARSE_WARNING"
 
-
-    transaction_types = [
-        "Transfer",
-        "Card",
-        "PayNow",
-        "NETS QR",
-    ]
+    transaction_types = TRANSACTION_TYPES
 
     @abstractmethod
     def rule_parse(self, text: str) -> Optional[TransactionData]:

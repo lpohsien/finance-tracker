@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
-import { X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 import { TransactionDetailModal } from './TransactionDetailModal';
 
 interface Category {

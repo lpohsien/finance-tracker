@@ -13,6 +13,7 @@ from src.parser import TransactionParser
 from src.storage import StorageManager
 from src.models import TransactionData
 from src.security import decrypt_value
+from src.config import TRANSACTION_TYPES
 
 router = APIRouter(prefix="/api/transactions", tags=["transactions"])
 parser = TransactionParser()
@@ -99,6 +100,59 @@ async def add_transaction(
         account=tx_data.account,
         status=tx_data.status,
         text_summary="Transaction added."
+    )
+
+@router.put("/{transaction_id}", response_model=TransactionResponse)
+async def update_transaction(
+    transaction_id: str,
+    update_data: TransactionUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    tx = storage.get_transaction(transaction_id, current_user)
+    if not tx:
+         raise HTTPException(status_code=404, detail="Transaction not found")
+
+    config = storage.get_user_config(current_user)
+    categories = config.get("categories", [])
+    
+    if update_data.category and update_data.category not in categories:
+         raise HTTPException(status_code=400, detail=f"Invalid category. Allowed: {categories}")
+
+    if update_data.type and update_data.type not in TRANSACTION_TYPES:
+         # Optional: Allow other types but warn? Or strict? 
+         # User said "treated in similar way as category", and category validation is strict above.
+         # But existing data might have types not in the list.
+         # Let's enforce it for UPDATES.
+         raise HTTPException(status_code=400, detail=f"Invalid transaction type. Allowed: {TRANSACTION_TYPES}")
+
+    if update_data.amount is not None:
+        tx.amount = update_data.amount
+    if update_data.description is not None:
+        tx.description = update_data.description
+    if update_data.category is not None:
+        tx.category = update_data.category
+    if update_data.type is not None:
+        tx.type = update_data.type
+    if update_data.timestamp is not None:
+        tx.timestamp = update_data.timestamp
+    if update_data.bank is not None:
+        tx.bank = update_data.bank
+    if update_data.status is not None:
+        tx.status = update_data.status
+        
+    storage.save_transaction(tx, current_user)
+    
+    return TransactionResponse(
+        id=tx.id,
+        amount=tx.amount,
+        description=tx.description,
+        bank=tx.bank,
+        category=tx.category,
+        timestamp=tx.timestamp,
+        type=tx.type,
+        account=tx.account,
+        status=tx.status,
+        text_summary="Transaction updated."
     )
 
 @router.get("", response_model=List[TransactionResponse])

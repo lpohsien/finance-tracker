@@ -7,6 +7,7 @@ from api.models import User
 from api.db import SessionLocal
 from src.storage import StorageManager
 from src.security import encrypt_value
+from src.config import TRANSACTION_TYPES
 
 router = APIRouter(prefix="/api/config", tags=["configuration"])
 storage = StorageManager()
@@ -17,6 +18,7 @@ class ConfigResponse(BaseModel):
     keywords: Dict[str, List[str]]
     big_ticket_threshold: float
     api_key_set: bool
+    transaction_types: List[str]
 
 @router.get("", response_model=ConfigResponse)
 async def get_config(
@@ -28,6 +30,7 @@ async def get_config(
         "categories": config.get("categories", []),
         "keywords": config.get("keywords", {}),
         "big_ticket_threshold": config.get("big_ticket_threshold", 0.0),
+        "transaction_types": TRANSACTION_TYPES,
         "api_key_set": bool(current_user.google_api_key)
     }
 
