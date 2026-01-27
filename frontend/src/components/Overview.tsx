@@ -3,12 +3,30 @@ import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { SimplePieChart } from './SimplePieChart';
-import { ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, Info } from 'lucide-react';
 import { TransactionDetailModal } from './TransactionDetailModal';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface OverviewProps {
   onNavigateToTransactions?: () => void;
 }
+
+const DisbursementInfoTooltip = () => (
+    <TooltipProvider>
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Info size={12} className="text-gray-400 hover:text-gray-600 cursor-pointer" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-[300px] text-xs">
+                <div className="space-y-1">
+                    <p><strong>Total Spent:</strong> Your actual net cost (Expenditure - Disbursed Amount).</p>
+                    <p><strong>Expenditure:</strong> The total money leaving your account (Chart Center).</p>
+                    <p><strong>Disbursed Amount:</strong> Money paid on behalf of others and reimbursed.</p>
+                </div>
+            </TooltipContent>
+        </Tooltip>
+    </TooltipProvider>
+);
 
 export default function Overview({ onNavigateToTransactions }: OverviewProps) {
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
@@ -41,10 +59,11 @@ export default function Overview({ onNavigateToTransactions }: OverviewProps) {
 
   if (isLoading) return <div className="p-8 text-center text-gray-400">Loading overview...</div>;
 
-  const totalSpent = Math.abs(stats.expense);
+  const totalSpent = Math.abs(stats.disbursed_expense);
   const income = stats.income;
   const budget = config?.budgets?.['Monthly'] || 2000; // Use configured budget or default
   const remaining = budget - totalSpent;
+  const disbursed_amount = stats.expense - stats.disbursed_expense;
 
   // Colors for chart
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#6366F1'];
@@ -52,10 +71,11 @@ export default function Overview({ onNavigateToTransactions }: OverviewProps) {
   const chartData = Object.entries(stats.breakdown || {})
     .map(([name, value]: [string, any], index) => ({
       name,
-      value: Math.abs(value),
+      value: value,
       color: COLORS[index % COLORS.length]
     }))
-    .filter(d => d.value > 0)
+    .filter(d => d.value < 0)
+    .map(d => ({ ...d, value: Math.abs(d.value) })) // Ensure positive values for chart
     .sort((a, b) => b.value - a.value);
 
   return (
@@ -86,11 +106,14 @@ export default function Overview({ onNavigateToTransactions }: OverviewProps) {
           <p className="text-xs text-gray-500 dark:text-gray-400">Income</p>
           <p className="font-bold text-lg">${income.toFixed(2)}</p>
         </Card>
-        <Card className="flex flex-col items-center justify-center py-6">
+        <Card className="flex flex-col items-center justify-center py-6 relative group">
           <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 mb-2">
             <ArrowUpRight size={16} />
           </div>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Expense</p>
+          <div className="flex items-center gap-1">
+             <p className="text-xs text-gray-500 dark:text-gray-400">Total Spent</p>
+             <DisbursementInfoTooltip />
+          </div>
           <p className="font-bold text-lg">${totalSpent.toFixed(2)}</p>
         </Card>
       </div>
@@ -101,6 +124,10 @@ export default function Overview({ onNavigateToTransactions }: OverviewProps) {
         <div className="flex items-center justify-between">
           <div className="w-32 h-32 relative shrink-0">
              <SimplePieChart data={chartData} />
+             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                 <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">Expenses</span>
+                 <span className="text-xs font-bold text-gray-900 dark:text-white">${Math.abs(stats.expense).toFixed(2)}</span>
+             </div>
           </div>
           <div className="flex-1 ml-6 space-y-2">
             {chartData.slice(0, 5).map(d => (
@@ -117,6 +144,16 @@ export default function Overview({ onNavigateToTransactions }: OverviewProps) {
              )}
           </div>
         </div>
+        
+        {Math.abs(disbursed_amount) > 0 && (
+             <div className="mt-4 pt-3 border-t border-gray-100 dark:border-slate-800 text-xs text-gray-500 flex justify-between items-center">
+                 <div className="flex items-center gap-1">
+                    <span>Disbursed Amount:</span>
+                    <DisbursementInfoTooltip />
+                 </div>
+                 <span className="font-medium">${Math.abs(disbursed_amount).toFixed(2)}</span>
+             </div>
+        )}
       </Card>
 
       {/* Recent Transactions */}

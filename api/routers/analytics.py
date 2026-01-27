@@ -40,12 +40,6 @@ async def get_monthly_stats(
     income_expense = engine.get_total_income_expense()
     cat_breakdown = engine.get_category_breakdown()
 
-    # Sort category breakdown by value (expense is negative)
-    # Actually, expenses are negative. Breakdown has negative values.
-    # We might want to return absolute values for charts, or keep it signed.
-    # Frontend usually expects absolute for pie charts.
-    # Let's keep it signed as per engine, frontend handles it.
-
     return {
         "income": income_expense["income"],
         "expense": income_expense["expense"],
