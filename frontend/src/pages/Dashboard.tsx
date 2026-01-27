@@ -19,7 +19,7 @@ export default function Dashboard() {
     <Layout activeTab={activeTab} onTabChange={setActiveTab} onLogout={handleLogout}>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsContent value="overview" className="space-y-4 m-0 outline-none">
-          <Overview />
+          <Overview onNavigateToTransactions={() => setActiveTab('transactions')} />
         </TabsContent>
 
         <TabsContent value="transactions" className="space-y-4 m-0 outline-none">

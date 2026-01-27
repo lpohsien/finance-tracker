@@ -65,7 +65,7 @@ async def parse_transaction(
         type=transaction_data.type or "Unknown",
         account=transaction_data.account,
         status=transaction_data.status,
-        text_summary=f"Added {transaction_data.currency if hasattr(transaction_data, 'currency') else 'SGD'} {transaction_data.amount:.2f} at {transaction_data.description}."
+        text_summary=f"Added SGD {transaction_data.amount:.2f} at {transaction_data.description}."
     )
     return resp
 

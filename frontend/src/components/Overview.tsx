@@ -1,10 +1,17 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { SimplePieChart } from './SimplePieChart';
 import { ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { TransactionDetailModal } from './TransactionDetailModal';
 
-export default function Overview() {
+interface OverviewProps {
+  onNavigateToTransactions?: () => void;
+}
+
+export default function Overview({ onNavigateToTransactions }: OverviewProps) {
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const now = new Date();
   const { data: stats, isLoading } = useQuery({
     queryKey: ['stats', now.getFullYear(), now.getMonth() + 1],
@@ -73,24 +80,24 @@ export default function Overview() {
       {/* Income / Expense Mini Cards */}
       <div className="grid grid-cols-2 gap-4">
         <Card className="flex flex-col items-center justify-center py-6">
-          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 mb-2">
+          <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 mb-2">
             <ArrowDownLeft size={16} />
           </div>
-          <p className="text-xs text-gray-500">Income</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Income</p>
           <p className="font-bold text-lg">${income.toFixed(2)}</p>
         </Card>
         <Card className="flex flex-col items-center justify-center py-6">
-          <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600 mb-2">
+          <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 mb-2">
             <ArrowUpRight size={16} />
           </div>
-          <p className="text-xs text-gray-500">Expense</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Expense</p>
           <p className="font-bold text-lg">${totalSpent.toFixed(2)}</p>
         </Card>
       </div>
 
       {/* Breakdown Chart */}
       <Card className="p-6">
-        <h3 className="font-bold mb-4 text-gray-800">Expenditure Breakdown</h3>
+        <h3 className="font-bold mb-4 text-gray-800 dark:text-white">Expenditure Breakdown</h3>
         <div className="flex items-center justify-between">
           <div className="w-32 h-32 relative shrink-0">
              <SimplePieChart data={chartData} />
@@ -100,13 +107,13 @@ export default function Overview() {
               <div key={d.name} className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }} />
-                  <span className="text-gray-600 font-medium truncate max-w-[80px]">{d.name}</span>
+                  <span className="text-gray-600 dark:text-gray-300 font-medium truncate max-w-[80px]">{d.name}</span>
                 </div>
-                <span className="font-semibold">${d.value.toFixed(2)}</span>
+                <span className="font-semibold dark:text-gray-200">${d.value.toFixed(2)}</span>
               </div>
             ))}
              {chartData.length > 5 && (
-                 <div className="text-xs text-gray-400 text-right italic">+ {chartData.length - 5} more</div>
+                 <div className="text-xs text-gray-400 dark:text-gray-500 text-right italic">+ {chartData.length - 5} more</div>
              )}
           </div>
         </div>
@@ -115,31 +122,47 @@ export default function Overview() {
       {/* Recent Transactions */}
       <div>
         <div className="flex justify-between items-center mb-4 px-2">
-          <h3 className="font-bold text-gray-800">Recent Transactions</h3>
-          <button className="text-blue-600 text-sm font-medium">See All</button>
+          <h3 className="font-bold text-gray-800 dark:text-white">Recent Transactions</h3>
+          <button 
+            onClick={onNavigateToTransactions}
+            className="text-blue-600 dark:text-blue-400 text-sm font-medium hover:underline transition-all"
+          >
+            See All
+          </button>
         </div>
         <div className="space-y-3">
           {transactions?.map((t: any) => (
-            <div key={t.id} className="flex items-center justify-between bg-white p-3 rounded-xl shadow-sm border border-gray-50">
+            <div 
+                key={t.id} 
+                className="flex items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-xl shadow-sm border border-gray-50 dark:border-slate-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
+                onClick={() => setSelectedTransaction(t)}
+            >
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-xl shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-slate-800 flex items-center justify-center text-xl shrink-0">
                   {/* Simple emoji mapping based on first letter or hardcoded checks if we had a map */}
                   {['Food', 'Lunch', 'Dinner'].includes(t.category) ? '🍱' : 
                    ['Transport', 'Bus', 'Grab', 'Uber'].includes(t.category) ? '🚌' : 
                    ['Shopping'].includes(t.category) ? '🛍️' : '💸'}
                 </div>
                 <div className="min-w-0">
-                  <p className="font-semibold text-sm truncate">{t.description || t.bank}</p>
-                  <p className="text-[10px] text-gray-400">{new Date(t.timestamp).toLocaleDateString()}</p>
+                  <p className="font-semibold text-sm truncate dark:text-gray-200">{t.description || t.bank}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500">{new Date(t.timestamp).toLocaleDateString()}</p>
                 </div>
               </div>
-              <p className={`font-bold text-sm ${t.type === 'expense' ? 'text-red-500' : 'text-green-500'}`}>
-                {t.type === 'expense' ? '-' : '+'}${t.amount.toFixed(2)}
+              <p className={`font-bold text-sm ${t.amount < 0 ? 'text-red-500 dark:text-red-400' : 'text-green-500 dark:text-green-400'}`}>
+                {t.amount < 0 ? '-' : '+'}${Math.abs(t.amount).toFixed(2)}
               </p>
             </div>
           ))}
         </div>
       </div>
+
+      {selectedTransaction && (
+          <TransactionDetailModal 
+              transaction={selectedTransaction} 
+              onClose={() => setSelectedTransaction(null)} 
+          />
+      )}
     </div>
   );
 }

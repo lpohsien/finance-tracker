@@ -7,8 +7,8 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=sqlite:///./data/finance.db
-      - SECRET_KEY=dev_secret_key
-      - ENCRYPTION_KEY=dev_encryption_key_needs_fernet_valid_key
+      - SECRET_KEY=${SECRET_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - CORS_ORIGINS=http://localhost:5173,http://localhost:8000
     volumes:
       - ./data:/app/data

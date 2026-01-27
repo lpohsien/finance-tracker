@@ -9,7 +9,7 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light;
+  color-scheme: light dark;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -17,7 +17,7 @@
 }
 
 body {
-  @apply bg-gray-50 text-slate-900 min-h-screen antialiased selection:bg-blue-100 selection:text-blue-900;
+  @apply bg-gray-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 min-h-screen antialiased selection:bg-blue-100 selection:text-blue-900;
   /* iOS Safe Area handling */
   padding-bottom: env(safe-area-inset-bottom);
 }

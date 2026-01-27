@@ -108,4 +108,4 @@ def llm_parse_bank_message(message: str, transaction_type: List[str] = [], api_k
     
     except Exception as e:
         logger.error(f"Error during LLM parsing: {e}")
-        return {}, "LLM parsing error"
+        return {}, f"LLM parsing error: {e}"

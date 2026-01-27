@@ -88,7 +88,7 @@ export default function Settings() {
                 type="number" 
                 placeholder={config?.budgets?.['Monthly'] ? config.budgets['Monthly'].toString() : "Set budget..."}
                 onChange={(e) => setMonthlyBudget(Number(e.target.value))}
-                className="flex-1 p-3 bg-gray-50 rounded-xl font-bold text-lg border-none focus:ring-2 focus:ring-blue-100 outline-none"
+                className="flex-1 p-3 bg-gray-50 dark:bg-slate-900 rounded-xl font-bold text-lg border-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 outline-none dark:text-white"
             />
             <Button variant="secondary" onClick={() => updateBudgetMutation.mutate(monthlyBudget)}>Set</Button>
             </div>
@@ -97,13 +97,13 @@ export default function Settings() {
 
       {/* Categories */}
       <div className="space-y-4">
-        <h3 className="font-bold px-2 text-gray-800">Categories & Keywords</h3>
+        <h3 className="font-bold px-2 text-gray-800 dark:text-white">Categories & Keywords</h3>
         {categories.map((cat: string) => (
           <Card key={cat} className="p-3">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center">
                 <div className="w-3 h-3 rounded-full mr-2 bg-blue-500" />
-                <span className="font-semibold text-sm">{cat}</span>
+                <span className="font-semibold text-sm dark:text-white">{cat}</span>
               </div>
               <button 
                 onClick={() => deleteCategoryMutation.mutate(cat)}
@@ -114,12 +114,12 @@ export default function Settings() {
             </div>
             <div className="flex flex-wrap gap-1">
               {config?.keywords?.[cat]?.map((kw: string) => (
-                <span key={kw} className="px-2 py-0.5 bg-gray-100 text-[10px] text-gray-500 rounded-md">
+                <span key={kw} className="px-2 py-0.5 bg-gray-100 dark:bg-slate-800 text-[10px] text-gray-500 dark:text-gray-400 rounded-md">
                   {kw}
                 </span>
               ))}
               {(!config?.keywords?.[cat] || config.keywords[cat].length === 0) && (
-                  <span className="text-[10px] text-gray-400 italic">No keywords</span>
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500 italic">No keywords</span>
               )}
             </div>
           </Card>
@@ -129,7 +129,7 @@ export default function Settings() {
           <input 
             type="text" 
             placeholder="New category..." 
-            className="flex-1 p-3 bg-white border border-gray-100 rounded-xl"
+            className="flex-1 p-3 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-xl dark:text-white"
             value={newCat}
             onChange={(e) => setNewCat(e.target.value)}
           />
@@ -138,8 +138,8 @@ export default function Settings() {
       </div>
 
       {/* Technical Settings */}
-      <div className="pt-8 border-t border-gray-100">
-        <h3 className="font-bold px-2 mb-4 text-gray-800">Advanced Integration</h3>
+      <div className="pt-8 border-t border-gray-100 dark:border-slate-800">
+        <h3 className="font-bold px-2 mb-4 text-gray-800 dark:text-white">Advanced Integration</h3>
         
         <div className="space-y-4">
             <Card>
@@ -173,7 +173,7 @@ export default function Settings() {
                 {exportToken && (
                     <div className="mt-4">
                     <Label>Your Token (Copy immediately):</Label>
-                    <div className="p-2 bg-slate-100 rounded break-all font-mono text-xs mt-1 select-all">
+                    <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded break-all font-mono text-xs mt-1 select-all">
                         {exportToken}
                     </div>
                     </div>

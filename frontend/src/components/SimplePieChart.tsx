@@ -17,8 +17,8 @@ export const SimplePieChart: React.FC<SimplePieChartProps> = ({ data }) => {
   if (total === 0) {
       return (
           <svg viewBox="0 0 32 32" className="w-full h-full -rotate-90">
-              <circle cx="16" cy="16" r="16" fill="#e5e7eb" />
-              <circle cx="16" cy="16" r="10" fill="white" />
+              <circle cx="16" cy="16" r="16" className="fill-gray-200 dark:fill-slate-800" />
+              <circle cx="16" cy="16" r="10" className="fill-white dark:fill-slate-900" />
           </svg>
       )
   }
@@ -55,7 +55,7 @@ export const SimplePieChart: React.FC<SimplePieChartProps> = ({ data }) => {
           />
         );
       })}
-      <circle cx="16" cy="16" r="10" fill="white" />
+      <circle cx="16" cy="16" r="10" className="fill-white dark:fill-slate-900" />
     </svg>
   );
 };

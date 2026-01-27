@@ -25,16 +25,16 @@ export default function Register() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50/50 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50/50 dark:bg-slate-950 p-4">
       <div className="mb-8 text-center">
         <div className="h-12 w-12 bg-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-600/20">
             <UserPlus className="text-white w-6 h-6" />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
-        <p className="text-gray-500">Join the finance tracker today</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Create Account</h1>
+        <p className="text-gray-500 dark:text-gray-400">Join the finance tracker today</p>
       </div>
 
-      <Card className="w-full max-w-[400px] border-gray-100 shadow-xl shadow-gray-200/50">
+      <Card className="w-full max-w-[400px] border-gray-100 dark:border-slate-800 shadow-xl shadow-gray-200/50 dark:shadow-slate-900/50">
         <CardHeader className="space-y-1">
           <CardTitle className="text-xl">Register</CardTitle>
           <CardDescription>Enter your details to create an account.</CardDescription>
