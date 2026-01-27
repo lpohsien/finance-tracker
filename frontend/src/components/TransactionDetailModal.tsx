@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { X, CheckCircle2 } from 'lucide-react';
+import { X, CheckCircle2, Copy, Check } from 'lucide-react';
 import api from '../lib/api';
 
 interface Transaction {
@@ -37,6 +37,15 @@ export function TransactionDetailModal({ transaction: initialTransaction, onClos
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showFullId, setShowFullId] = useState(false);
+  const [copiedId, setCopiedId] = useState(false);
+
+  const handleCopyId = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(transaction.id);
+      setCopiedId(true);
+      setTimeout(() => setCopiedId(false), 2000);
+  };
 
   useEffect(() => {
     setTransaction(initialTransaction);
@@ -142,7 +151,20 @@ export function TransactionDetailModal({ transaction: initialTransaction, onClos
                     <div className="flex justify-between text-sm">
                         <span className="text-gray-500">Transaction ID</span>
                         <div className="flex items-center gap-2">
-                             <span className="font-mono text-xs dark:text-white">{transaction.id.slice(0, 8)}...</span>
+                             <span 
+                                className="font-mono text-xs dark:text-white cursor-pointer hover:bg-gray-200 dark:hover:bg-slate-700 px-1 rounded transition-colors"
+                                onClick={() => setShowFullId(!showFullId)}
+                                title="Click to toggle full ID"
+                             >
+                                {showFullId ? transaction.id : `${transaction.id.slice(0, 8)}...`}
+                             </span>
+                             <button
+                                onClick={handleCopyId}
+                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700"
+                                title="Copy ID"
+                             >
+                                {copiedId ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                             </button>
                         </div>
                     </div>
 
