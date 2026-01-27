@@ -156,6 +156,15 @@ export function TransactionDetailModal({ transaction: initialTransaction, onClos
                     </div>
 
                     <div className="flex justify-between text-sm items-center cursor-pointer" onClick={!isEditing ? handleEdit : undefined}>
+                        <span className="text-gray-500">Account</span>
+                        {isEditing ? (
+                            <Input value={formData.account} onChange={e => handleChange('account', e.target.value)} className="h-7 w-40 text-sm" />
+                        ) : (
+                            <span className="font-medium dark:text-white hover:text-blue-500 transition-colors">{transaction.account}</span>
+                        )}
+                    </div>
+
+                    <div className="flex justify-between text-sm items-center cursor-pointer" onClick={!isEditing ? handleEdit : undefined}>
                         <span className="text-gray-500">Amount</span>
                         {isEditing ? (
                             <Input 
