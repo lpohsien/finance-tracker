@@ -13,15 +13,26 @@ interface OverviewProps {
 
 const DisbursementInfoTooltip = () => (
     <TooltipProvider>
-        <Tooltip>
+        <Tooltip delayDuration={300}>
             <TooltipTrigger asChild>
-                <Info size={12} className="text-gray-400 hover:text-gray-600 cursor-pointer" />
+                <div className="cursor-help transition-opacity hover:opacity-100 opacity-70 flex items-center justify-center">
+                    <Info size={14} className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300" />
+                </div>
             </TooltipTrigger>
-            <TooltipContent className="max-w-[300px] text-xs">
-                <div className="space-y-1">
-                    <p><strong>Total Spent:</strong> Your actual net cost (Expenditure - Disbursed Amount).</p>
-                    <p><strong>Expenditure:</strong> The total money leaving your account (Chart Center).</p>
-                    <p><strong>Disbursed Amount:</strong> Money paid on behalf of others and reimbursed.</p>
+            <TooltipContent className="max-w-[280px] p-4" side="bottom" align="start">
+                <div className="flex flex-col gap-3 text-xs leading-relaxed">
+                    <div>
+                        <span className="font-semibold text-slate-900 dark:text-slate-100 block mb-0.5">Total Spent</span>
+                        <span className="text-slate-600 dark:text-slate-400">Your actual net cost (Expenditure minus Disbursed Amount).</span>
+                    </div>
+                    <div>
+                        <span className="font-semibold text-slate-900 dark:text-slate-100 block mb-0.5">Expenditure</span>
+                        <span className="text-slate-600 dark:text-slate-400">The total money leaving your account (shown in Chart Center).</span>
+                    </div>
+                    <div>
+                        <span className="font-semibold text-slate-900 dark:text-slate-100 block mb-0.5">Disbursed Amount</span>
+                        <span className="text-slate-600 dark:text-slate-400">Money paid on behalf of others that will be reimbursed.</span>
+                    </div>
                 </div>
             </TooltipContent>
         </Tooltip>
