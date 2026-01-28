@@ -30,7 +30,7 @@ async def get_config(
     config = storage.get_user_config(current_user)
     return {
         "budgets": config.get("budgets", {}),
-        "categories": config.get("categories", []),
+        "categories": sorted(config.get("categories", [])),
         "keywords": config.get("keywords", {}),
         "tracking_items": config.get("tracking_items", []),
         "big_ticket_threshold": config.get("big_ticket_threshold", 0.0),

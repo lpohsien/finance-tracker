@@ -262,7 +262,7 @@ class StorageManager:
                     config["keywords"][cat_lower] = [cat_lower]
                 added.append(cat_lower)
                 
-        config["categories"] = list(current_categories)
+        config["categories"] = sorted(list(current_categories))
         self.save_user_config(user_id, config)
         return added, errors
 
