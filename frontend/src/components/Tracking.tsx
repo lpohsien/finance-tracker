@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, Edit } from 'lucide-react';
+import { Plus, Trash2, Edit, Check } from 'lucide-react';
 import { TrackingItemModal } from './TrackingItemModal';
 
 // Types (should ideally be in a types file)
@@ -38,6 +38,22 @@ export default function Tracking() {
     const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<TrackingItem | null>(null);
+    const [monthlyBudget, setMonthlyBudget] = useState<number>(0);
+    const [isBudgetSaved, setIsBudgetSaved] = useState(false);
+
+    const { data: config } = useQuery({
+        queryKey: ['config'],
+        queryFn: async () => {
+            const res = await api.get('/api/config');
+            return res.data;
+        }
+    });
+
+    useEffect(() => {
+        if (config?.budgets?.['Monthly']) {
+            setMonthlyBudget(config.budgets['Monthly']);
+        }
+    }, [config]);
 
     const { data: items, isLoading } = useQuery<TrackingStatus[]>({
         queryKey: ['tracking-status'],
@@ -56,7 +72,14 @@ export default function Tracking() {
         }
     });
 
-    if (isLoading) return <div>Loading tracking data...</div>;
+    const updateBudgetMutation = useMutation({
+        mutationFn: (amount: number) => api.post('/api/config/budgets', { category: 'Monthly', amount }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['config'] });
+            setIsBudgetSaved(true);
+            setTimeout(() => setIsBudgetSaved(false), 2000);
+        }
+    });
 
     const handleDelete = (id: string) => {
         if (confirm('Are you sure you want to delete this tracking item?')) {
@@ -92,6 +115,33 @@ export default function Tracking() {
                     <Plus size={16} /> Add New
                 </Button>
             </div>
+
+            {/* Monthly Budget Card */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Monthly Budget Overview</CardTitle>
+                    <CardDescription>Set your total monthly budget goal for the dashboard overview.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center space-x-4">
+                        <input 
+                            type="number" 
+                            placeholder={config?.budgets?.['Monthly'] ? config.budgets['Monthly'].toString() : "Set budget..."}
+                            value={monthlyBudget || ''}
+                            onChange={(e) => setMonthlyBudget(Number(e.target.value))}
+                            className="flex-1 p-3 bg-gray-50 dark:bg-slate-900 rounded-xl font-bold text-lg border-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 outline-none dark:text-white"
+                        />
+                        <Button 
+                            variant={isBudgetSaved ? "outline" : "secondary"}
+                            onClick={() => updateBudgetMutation.mutate(monthlyBudget)}
+                            className={isBudgetSaved ? "bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400 transition-colors" : "transition-colors"}
+                        >
+                            {isBudgetSaved ? <Check size={16} className="mr-2" /> : null}
+                            {isBudgetSaved ? "Saved" : "Set"}
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {items?.map((item) => (

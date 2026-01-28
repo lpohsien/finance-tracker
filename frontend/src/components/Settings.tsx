@@ -12,20 +12,12 @@ export default function Settings() {
   const [apiKey, setApiKey] = useState('');
   const [exportToken, setExportToken] = useState('');
   const [newCat, setNewCat] = useState('');
-  const [monthlyBudget, setMonthlyBudget] = useState<number>(0);
 
   const { data: config, isLoading } = useQuery({
     queryKey: ['config'],
     queryFn: async () => {
       const res = await api.get('/api/config');
       return res.data;
-    }
-  });
-
-  // Effect to set initial budget state when config loads
-  useState(() => {
-    if (config?.budgets?.['Monthly']) {
-        setMonthlyBudget(config.budgets['Monthly']);
     }
   });
 
@@ -45,16 +37,7 @@ export default function Settings() {
     }
   });
 
-  // Config Mutations
-  const updateBudgetMutation = useMutation({
-      mutationFn: (amount: number) => api.post('/api/config/budgets', { category: 'Monthly', amount }),
-      onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: ['config'] });
-          alert('Budget Updated');
-      }
-  });
-
-  const addCategoryMutation = useMutation({
+  const addCategoryMutation = useMutation({ // Removed updateBudgetMutation
       mutationFn: (category: string) => api.post('/api/config/categories', { categories: [category] }),
       onSuccess: () => {
           setNewCat('');
@@ -77,24 +60,6 @@ export default function Settings() {
   return (
     <div className="space-y-6 animate-in fade-in duration-300 pb-10">
       
-      {/* Budget */}
-      <Card>
-        <CardHeader>
-           <CardTitle>Monthly Budget</CardTitle>
-        </CardHeader>
-        <CardContent>
-            <div className="flex items-center space-x-4">
-            <input 
-                type="number" 
-                placeholder={config?.budgets?.['Monthly'] ? config.budgets['Monthly'].toString() : "Set budget..."}
-                onChange={(e) => setMonthlyBudget(Number(e.target.value))}
-                className="flex-1 p-3 bg-gray-50 dark:bg-slate-900 rounded-xl font-bold text-lg border-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 outline-none dark:text-white"
-            />
-            <Button variant="secondary" onClick={() => updateBudgetMutation.mutate(monthlyBudget)}>Set</Button>
-            </div>
-        </CardContent>
-      </Card>
-
       {/* Categories */}
       <div className="space-y-4">
         <h3 className="font-bold px-2 text-gray-800 dark:text-white">Categories & Keywords</h3>
