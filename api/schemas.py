@@ -54,3 +54,31 @@ class KeywordAction(BaseModel):
 
 class APIKeyUpdate(BaseModel):
     api_key: str
+
+class AccountFilter(BaseModel):
+    bank: Optional[str] = None
+    account: Optional[str] = None
+    type: Optional[str] = None
+
+class TrackingFilters(BaseModel):
+    categories: Optional[List[str]] = None
+    accounts: Optional[List[AccountFilter]] = None
+
+class TrackingItemBase(BaseModel):
+    name: str
+    type: str # "goal" or "limit"
+    target_amount: float
+    period: str # "daily", "weekly", "monthly", "annually"
+    net_disbursements: bool = False
+    filters: TrackingFilters
+
+class TrackingItemCreate(TrackingItemBase):
+    pass
+
+class TrackingItem(TrackingItemBase):
+    id: str
+
+class TrackingStatus(TrackingItem):
+    current_amount: float
+    start_date: str # ISO
+    end_date: str # ISO

@@ -4,6 +4,7 @@ import { Tabs, TabsContent } from '@/components/ui/tabs';
 import Overview from '@/components/Overview';
 import Analysis from '@/components/Analysis';
 import Settings from '@/components/Settings';
+import Tracking from '@/components/Tracking';
 import Layout from '@/components/Layout';
 
 export default function Dashboard() {
@@ -24,6 +25,10 @@ export default function Dashboard() {
 
         <TabsContent value="transactions" className="space-y-4 m-0 outline-none">
           <Analysis />
+        </TabsContent>
+
+        <TabsContent value="tracking" className="space-y-4 m-0 outline-none">
+          <Tracking />
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-4 m-0 outline-none">

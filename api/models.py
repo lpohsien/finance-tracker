@@ -26,6 +26,7 @@ class UserConfiguration(Base):
     budgets = Column(JSON, default=dict)
     categories = Column(JSON, default=list)
     keywords = Column(JSON, default=dict)
+    tracking_items = Column(JSON, default=list)
     big_ticket_threshold = Column(Float, default=0.0)
 
     user = relationship("User", back_populates="configuration")

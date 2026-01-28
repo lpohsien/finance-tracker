@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Body
 from typing import List, Dict, Optional
 from pydantic import BaseModel
+import uuid
 
 from api.dependencies import get_current_user, get_api_key
 from api.models import User
 from api.db import SessionLocal
+from api.schemas import TrackingItem, TrackingItemCreate
 from src.storage import StorageManager
 from src.security import encrypt_value
 from src.config import TRANSACTION_TYPES
@@ -16,6 +18,7 @@ class ConfigResponse(BaseModel):
     budgets: Dict[str, float]
     categories: List[str]
     keywords: Dict[str, List[str]]
+    tracking_items: List[TrackingItem]
     big_ticket_threshold: float
     api_key_set: bool
     transaction_types: List[str]
@@ -29,6 +32,7 @@ async def get_config(
         "budgets": config.get("budgets", {}),
         "categories": config.get("categories", []),
         "keywords": config.get("keywords", {}),
+        "tracking_items": config.get("tracking_items", []),
         "big_ticket_threshold": config.get("big_ticket_threshold", 0.0),
         "transaction_types": TRANSACTION_TYPES,
         "api_key_set": bool(current_user.google_api_key)
@@ -104,3 +108,65 @@ async def delete_api_key(
         user.google_api_key = None
         db.commit()
     return {"message": "API Key removed"}
+
+@router.post("/tracking", response_model=TrackingItem)
+async def add_tracking_item(
+    item: TrackingItemCreate,
+    current_user: User = Depends(get_current_user)
+):
+    config = storage.get_user_config(current_user)
+    items = config.get("tracking_items", [])
+    
+    new_item = item.model_dump()
+    new_item["id"] = str(uuid.uuid4())
+    items.append(new_item)
+    
+    config["tracking_items"] = items
+    storage.save_user_config(current_user, config)
+    return new_item
+
+@router.put("/tracking/{item_id}", response_model=TrackingItem)
+async def update_tracking_item(
+    item_id: str,
+    item: TrackingItemCreate,
+    current_user: User = Depends(get_current_user)
+):
+    config = storage.get_user_config(current_user)
+    items = config.get("tracking_items", [])
+    
+    found = False
+    updated_items = []
+    updated_item_data = {}
+    
+    for existing in items:
+        if existing["id"] == item_id:
+            updated_item_data = item.model_dump()
+            updated_item_data["id"] = item_id
+            updated_items.append(updated_item_data)
+            found = True
+        else:
+            updated_items.append(existing)
+            
+    if not found:
+        raise HTTPException(status_code=404, detail="Tracking item not found")
+        
+    config["tracking_items"] = updated_items
+    storage.save_user_config(current_user, config)
+    return updated_item_data
+
+@router.delete("/tracking/{item_id}")
+async def delete_tracking_item(
+    item_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    config = storage.get_user_config(current_user)
+    items = config.get("tracking_items", [])
+    
+    filtered = [i for i in items if i["id"] != item_id]
+    
+    if len(filtered) == len(items):
+        raise HTTPException(status_code=404, detail="Tracking item not found")
+        
+    config["tracking_items"] = filtered
+    storage.save_user_config(current_user, config)
+    return {"message": "Deleted"}

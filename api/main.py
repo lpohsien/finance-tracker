@@ -7,7 +7,7 @@ import os
 import logging
 
 from api.db import engine, Base
-from api.routers import transactions, analytics, configuration
+from api.routers import transactions, analytics, configuration, tracking
 from api.auth import router as auth_router
 
 # Create tables
@@ -33,6 +33,7 @@ app.include_router(auth_router)
 app.include_router(transactions.router)
 app.include_router(analytics.router)
 app.include_router(configuration.router)
+app.include_router(tracking.router)
 
 @app.get("/api/health")
 async def health_check():

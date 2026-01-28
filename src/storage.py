@@ -76,6 +76,7 @@ class StorageManager:
             budgets=deepcopy(DEFAULT_BUDGETS),
             categories=deepcopy(DEFAULT_CATEGORIES),
             keywords=deepcopy(DEFAULT_KEYWORDS),
+            tracking_items=[],
             big_ticket_threshold=BIG_TICKET_THRESHOLD
         )
         db.add(config)
@@ -102,7 +103,8 @@ class StorageManager:
                 "budgets": config.budgets,
                 "big_ticket_threshold": config.big_ticket_threshold,
                 "categories": config.categories,
-                "keywords": config.keywords
+                "keywords": config.keywords,
+                "tracking_items": config.tracking_items or []
             }
 
     def save_user_config(self, user_id: Any, config_dict: Dict[str, Any]):
@@ -123,12 +125,15 @@ class StorageManager:
                 config.keywords = config_dict["keywords"]
             if "big_ticket_threshold" in config_dict:
                 config.big_ticket_threshold = config_dict["big_ticket_threshold"]
+            if "tracking_items" in config_dict:
+                config.tracking_items = config_dict["tracking_items"]
 
             # Flag modified for JSON fields to ensure SQLAlchemy updates them
             from sqlalchemy.orm.attributes import flag_modified
             flag_modified(config, "budgets")
             flag_modified(config, "categories")
             flag_modified(config, "keywords")
+            flag_modified(config, "tracking_items")
 
             db.commit()
 

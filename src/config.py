@@ -60,7 +60,7 @@ TRANSACTION_TYPES = ["Card", "PayNow", "Transfer", "NETS QR"]
 
 # Default Keywords
 DEFAULT_KEYWORDS = {
-    "food": ["food", "dinner", "lunch", "breakfast", "cafe", "restaurant"],
+    "food": ["food", "dinner", "lunch", "breakfast", "restaurant"],
     "snack": ["snack", "snacks", "coffee", "bubble tea", "tea", "drink", "drinks"],
     "transport": ["transport", "grab", "gojek", "uber", "taxi", "train", "bus", "mrt", "concession", "smrt"],
     "shopping": ["shopping", "shopee", "lazada", "amazon", "uniqlo"],

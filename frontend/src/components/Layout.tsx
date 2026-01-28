@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, BarChart3, Settings as SettingsIcon, LogOut, Plus } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Settings as SettingsIcon, LogOut, Plus, Target } from 'lucide-react';
 import { Button } from './ui/button';
 import { QuickEntryModal } from './QuickEntryModal';
 import { ThemeToggle } from './ThemeToggle';
@@ -48,6 +48,7 @@ export default function Layout({ children, activeTab, onTabChange, onLogout }: L
     onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['transactions'] });
         queryClient.invalidateQueries({ queryKey: ['stats'] });
+        queryClient.invalidateQueries({ queryKey: ['tracking-status'] });
         // Don't close modal automatically anymore, let the modal handle success state
         // setIsModalOpen(false); 
     }
@@ -56,7 +57,8 @@ export default function Layout({ children, activeTab, onTabChange, onLogout }: L
 
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'transactions', label: 'Analysis', icon: BarChart3 }, // Renamed label to match reference
+    { id: 'transactions', label: 'Analysis', icon: BarChart3 },
+    { id: 'tracking', label: 'Tracking', icon: Target },
     { id: 'settings', label: 'Settings', icon: SettingsIcon },
   ];
 
