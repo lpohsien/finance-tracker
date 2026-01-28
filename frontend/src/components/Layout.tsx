@@ -37,12 +37,12 @@ export default function Layout({ children, activeTab, onTabChange, onLogout }: L
 
 
   const addTransactionMutation = useMutation({
-    mutationFn: async (parsedData: { amount: number; category: string; transaction_msg: string; bank_name: string; timestamp: string; remarks: string }) => {
+    mutationFn: async (inputData: { amount: number; category: string; transaction_msg: string; bank_name: string; timestamp: string; remarks: string }) => {
         return api.post('/api/transactions/parse', {
-            bank_message: parsedData.transaction_msg,
+            bank_message: inputData.transaction_msg,
             bank_name: 'UOB',
-            timestamp: parsedData.timestamp ? parsedData.timestamp : new Date().toISOString(),
-            remarks: parsedData.remarks
+            timestamp: inputData.timestamp ? inputData.timestamp : new Date().toISOString(),
+            remarks: inputData.remarks
         });
     },
     onSuccess: () => {
