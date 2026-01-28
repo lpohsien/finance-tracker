@@ -143,6 +143,14 @@ export default function Tracking() {
                 </CardContent>
             </Card>
 
+
+
+            {/* Tracking Items Grid. Do not display if is loading */}
+            {isLoading ? (
+                <div className="p-8 text-center text-gray-400">Loading tracking items...</div>
+            ) : items?.length === 0 ? (
+                <div className="p-8 text-center text-gray-400">No tracking items found. Click "Add New" to create one.</div>
+            ) : null}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {items?.map((item) => (
                     <TrackingCard 
