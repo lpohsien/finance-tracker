@@ -116,7 +116,7 @@ export default function Tracking() {
 }
 
 function TrackingCard({ item, onDelete, onEdit }: { item: TrackingStatus, onDelete: () => void, onEdit: () => void }) {
-    const percentage = Math.min((item.current_amount / item.target_amount) * 100, 100);
+    const percentage = (item.current_amount / item.target_amount) * 100;
     
     // Color Logic
     let barColor = 'bg-blue-500';
