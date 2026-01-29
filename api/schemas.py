@@ -22,6 +22,7 @@ class TransactionResponse(BaseModel):
     account: Optional[str] = None
     status: Optional[str] = None
     text_summary: Optional[str] = None # For Siri
+    transaction_path: Optional[str] = None # Frontend path
 
 class TransactionCreate(BaseModel):
     amount: float

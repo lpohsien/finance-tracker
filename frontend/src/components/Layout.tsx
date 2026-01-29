@@ -144,7 +144,7 @@ export default function Layout({ children, activeTab, onTabChange, onLogout }: L
        {/* Floating Add Button (Mobile Only) */}
        <button 
         onClick={() => setIsModalOpen(true)}
-        className="md:hidden fixed bottom-24 right-8 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg shadow-blue-200 flex items-center justify-center active:scale-95 transition-transform z-40"
+        className="md:hidden fixed bottom-24 right-8 w-14 h-14 bg-blue-600 text-white rounded-full shadow-blue-200 flex items-center justify-center active:scale-95 transition-transform z-40"
       >
         <Plus size={32} />
       </button>

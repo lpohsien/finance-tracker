@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
 from typing import List, Optional
 import uuid
 from datetime import datetime
@@ -21,7 +21,8 @@ storage = StorageManager()
 
 @router.post("/parse", response_model=TransactionResponse)
 async def parse_transaction(
-    request: TransactionParseRequest,
+    request: Request,
+    parse_request: TransactionParseRequest,
     current_user: User = Depends(get_current_user),
     api_key: Optional[str] = Depends(get_api_key)
 ):
@@ -33,7 +34,7 @@ async def parse_transaction(
     categories = config.get("categories")
     keywords = config.get("keywords")
 
-    data = request.model_dump()
+    data = parse_request.model_dump()
 
     # Parse
     transaction_data, status_msg = parser.parse_structured_data(
@@ -54,6 +55,13 @@ async def parse_transaction(
         transaction_data.id = str(uuid.uuid4())
 
     storage.save_transaction(transaction_data, current_user)
+    
+    # Construct full path assuming default vite port 5173
+    # Use the hostname from the request to support local network access via IP
+    hostname = request.url.hostname or "localhost"
+    port = request.url.port or 8000
+    scheme = request.url.scheme or "http"
+    full_path = f"{scheme}://{hostname}:{port}/transactions/{transaction_data.id}"
 
     # Prepare response
     resp = TransactionResponse(
@@ -66,7 +74,8 @@ async def parse_transaction(
         type=transaction_data.type or "Unknown",
         account=transaction_data.account,
         status=transaction_data.status,
-        text_summary=f"Added SGD {transaction_data.amount:.2f} at {transaction_data.description}."
+        text_summary=f"Added SGD {transaction_data.amount:.2f} at {transaction_data.description}.",
+        transaction_path=full_path
     )
     return resp
 
