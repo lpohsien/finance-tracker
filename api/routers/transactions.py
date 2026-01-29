@@ -1,3 +1,4 @@
+from calendar import calendar
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Request, UploadFile, File
 from fastapi.responses import StreamingResponse, JSONResponse
 from typing import List, Optional, Dict, Any
@@ -29,8 +30,6 @@ def apply_filters(
     query,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    year: Optional[int] = None,
-    month: Optional[int] = None,
     categories: Optional[List[str]] = None,
     accounts: Optional[List[str]] = None,
     types: Optional[List[str]] = None,
@@ -53,11 +52,6 @@ def apply_filters(
             query = query.filter(DBTransaction.timestamp <= ed)
         except:
             pass
-            
-    if year:
-        query = query.filter(extract('year', DBTransaction.timestamp) == year)
-        if month:
-            query = query.filter(extract('month', DBTransaction.timestamp) == month)
             
     # List Filters
     if categories:
@@ -227,8 +221,6 @@ async def update_transaction(
 
 @router.get("/export")
 async def export_transactions(
-    year: Optional[int] = Query(None),
-    month: Optional[int] = Query(None),
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None),
     categories: Optional[List[str]] = Query(None, alias="category"),
@@ -244,7 +236,7 @@ async def export_transactions(
         query = db.query(DBTransaction).filter(DBTransaction.user_id == current_user.id)
         
         has_filter = any([
-            year, month, start_date, end_date, 
+            start_date, end_date, 
             categories, accounts, types, banks, search
         ])
         
@@ -252,15 +244,15 @@ async def export_transactions(
         # Specification says "export transactions in the transactions view". 
         # View defaults to current month. So yes.
         if not has_filter:
-            current_date = datetime.now()
-            query = query.filter(extract('year', DBTransaction.timestamp) == current_date.year)
-            query = query.filter(extract('month', DBTransaction.timestamp) == current_date.month)
-        else:
-             query = apply_filters(
-                query, start_date, end_date, year, month, 
-                categories, accounts, types, banks, 
-                search, match_case, use_regex
-            )
+            today = datetime.now()
+            start_date = today.replace(day=1).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
+
+        query = apply_filters(
+            query, start_date, end_date,
+            categories, accounts, types, banks, 
+            search, match_case, use_regex
+        )
             
         query = query.order_by(DBTransaction.timestamp.desc())
         txs = query.all()
@@ -333,8 +325,6 @@ async def get_transaction(
 @router.get("", response_model=List[TransactionResponse])
 async def list_transactions(
     request: Request,
-    year: Optional[int] = Query(None),
-    month: Optional[int] = Query(None),
     limit: int = 100,
     offset: int = 0,
     start_date: Optional[str] = Query(None),
@@ -350,7 +340,7 @@ async def list_transactions(
 ):
     # Default to current month if no filtering provided at all
     has_filter = any([
-        year, month, start_date, end_date, 
+        start_date, end_date, 
         categories, accounts, types, banks, search
     ])
     
@@ -358,15 +348,16 @@ async def list_transactions(
         query = db.query(DBTransaction).filter(DBTransaction.user_id == current_user.id)
         
         if not has_filter:
-            current_date = datetime.now()
-            query = query.filter(extract('year', DBTransaction.timestamp) == current_date.year)
-            query = query.filter(extract('month', DBTransaction.timestamp) == current_date.month)
-        else:
-            query = apply_filters(
-                query, start_date, end_date, year, month, 
-                categories, accounts, types, banks, 
-                search, match_case, use_regex
-            )
+            today = datetime.now()
+            start_date = today.replace(day=1).strftime('%Y-%m-%d')
+            last_day = calendar.monthrange(today.year, today.month)[1]
+            end_date = today.replace(day=last_day).strftime('%Y-%m-%d')
+
+        query = apply_filters(
+            query, start_date, end_date,
+            categories, accounts, types, banks, 
+            search, match_case, use_regex
+        )
 
         query = query.order_by(DBTransaction.timestamp.desc())
         query = query.offset(offset).limit(limit)
