@@ -123,18 +123,18 @@ export default function Tracking() {
                     <CardDescription>Set your total monthly budget goal for the dashboard overview.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex items-center space-x-4">
+                    <div className="flex flex-col sm:flex-row gap-3">
                         <input 
                             type="number" 
                             placeholder={config?.budgets?.['Monthly'] ? config.budgets['Monthly'].toString() : "Set budget..."}
                             value={monthlyBudget || ''}
                             onChange={(e) => setMonthlyBudget(Number(e.target.value))}
-                            className="flex-1 p-3 bg-gray-50 dark:bg-slate-900 rounded-xl font-bold text-lg border-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 outline-none dark:text-white"
+                            className="flex-1 p-3 bg-gray-50 dark:bg-slate-900 rounded-xl font-bold text-lg border-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 outline-none dark:text-white w-full"
                         />
                         <Button 
                             variant={isBudgetSaved ? "outline" : "secondary"}
                             onClick={() => updateBudgetMutation.mutate(monthlyBudget)}
-                            className={isBudgetSaved ? "bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400 transition-colors" : "transition-colors"}
+                            className={`w-full sm:w-auto ${isBudgetSaved ? "bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400 transition-colors" : "transition-colors"}`}
                         >
                             {isBudgetSaved ? <Check size={16} className="mr-2" /> : null}
                             {isBudgetSaved ? "Saved" : "Set"}
