@@ -155,6 +155,28 @@ async def update_transaction(
         text_summary="Transaction updated."
     )
 
+@router.get("/{transaction_id}", response_model=TransactionResponse)
+async def get_transaction(
+    transaction_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    tx = storage.get_transaction(transaction_id, current_user.telegram_id)
+    if not tx:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+        
+    return TransactionResponse(
+        id=tx.id,
+        amount=tx.amount,
+        description=tx.description,
+        bank=tx.bank,
+        category=tx.category,
+        timestamp=tx.timestamp,
+        type=tx.type,
+        account=tx.account,
+        status=tx.status,
+        text_summary=f"{tx.type} transaction of {tx.amount} at {tx.description}"
+    )
+
 @router.get("", response_model=List[TransactionResponse])
 async def list_transactions(
     year: Optional[int] = Query(None),

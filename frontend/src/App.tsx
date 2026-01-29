@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import TransactionDetail from './pages/TransactionDetail';
 
 const queryClient = new QueryClient();
 
@@ -21,6 +22,14 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route
+              path="/transactions/:id"
+              element={
+                <PrivateRoute>
+                  <TransactionDetail />
+                </PrivateRoute>
+              }
+            />
             <Route
               path="/*"
               element={

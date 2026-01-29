@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { X, CheckCircle2, Copy, Check } from 'lucide-react';
+import { X, CheckCircle2, Copy, Check, Link } from 'lucide-react';
 import api from '../lib/api';
 
 interface Transaction {
@@ -39,12 +39,21 @@ export function TransactionDetailModal({ transaction: initialTransaction, onClos
   const [success, setSuccess] = useState('');
   const [showFullId, setShowFullId] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const handleCopyId = (e: React.MouseEvent) => {
       e.stopPropagation();
       navigator.clipboard.writeText(transaction.id);
       setCopiedId(true);
       setTimeout(() => setCopiedId(false), 2000);
+  };
+
+  const handleCopyLink = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const url = `${window.location.origin}/transactions/${transaction.id}`;
+      navigator.clipboard.writeText(url);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
   };
 
   useEffect(() => {
@@ -164,8 +173,13 @@ export function TransactionDetailModal({ transaction: initialTransaction, onClos
                                 title="Copy ID"
                              >
                                 {copiedId ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
-                             </button>
-                        </div>
+                             </button>                             <button 
+                                onClick={handleCopyLink}
+                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                title="Copy Permalink"
+                             >
+                                {copiedLink ? <Check size={14} className="text-green-500" /> : <Link size={14} />}
+                             </button>                        </div>
                     </div>
 
                     <div className="flex justify-between text-sm items-center cursor-pointer" onClick={!isEditing ? handleEdit : undefined}>
