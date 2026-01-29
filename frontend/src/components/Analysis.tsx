@@ -203,19 +203,19 @@ export default function Analysis() {
 
       {showFilters && (
           <SimpleCollapsible title="Advanced Filters" open={showFilters} onOpenChange={setShowFilters}>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 grid-flow-row-dense">
                   <div className="space-y-1">
-                      <Label className="text-xs text-gray-500">Date Range</Label>
-                      <div className="flex gap-2">
+                      <Label className="text-xs text-gray-500">Date Range (start - end)</Label>
+                      <div className="flex flex-wrap gap-2">
                           <Input 
                             type="date" 
-                            className="bg-white dark:bg-slate-900"
+                            className="bg-white dark:bg-slate-900 flex-1 min-w-[110px]"
                             value={filters.start_date}
                             onChange={(e) => setFilters(prev => ({...prev, start_date: e.target.value}))} 
                           />
                           <Input 
                             type="date" 
-                            className="bg-white dark:bg-slate-900"
+                            className="bg-white dark:bg-slate-900 flex-1 min-w-[110px]"
                             value={filters.end_date}
                             onChange={(e) => setFilters(prev => ({...prev, end_date: e.target.value}))} 
                           />
@@ -224,7 +224,7 @@ export default function Analysis() {
 
                   <div className="col-span-1 sm:col-span-2 space-y-1">
                       <Label className="text-xs text-gray-500">Entities</Label>
-                      <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="flex flex-col lg:flex-row gap-2">
                           <MultiSelectModal
                               title="Bank"
                               options={filterOptions?.banks || []}
@@ -252,7 +252,7 @@ export default function Analysis() {
                   <div className="space-y-1">
                       <Label className="text-xs text-gray-500">Categories</Label>
                       <MultiSelectModal
-                          title="Select Categories..."
+                          title="Categories..."
                           options={filterOptions?.categories || []}
                           selected={filters.category}
                           onChange={(val) => setFilters(prev => ({ ...prev, category: val }))}
@@ -260,7 +260,7 @@ export default function Analysis() {
                       />
                   </div>
 
-                  <div className="col-span-1 sm:col-span-2 lg:col-span-4 flex items-center gap-4 pt-2">
+                  <div className="col-span-1 sm:col-span-2 xl:col-span-4 flex items-center gap-4 pt-2">
                        <label className="flex items-center gap-2 text-sm cursor-pointer">
                            <input 
                             type="checkbox" 

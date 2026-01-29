@@ -51,7 +51,11 @@ export function MultiSelectModal({ title, options, selected, onChange, className
           className={cn("w-full justify-between h-9", className)}
         >
            <span className="truncate">
-             {selected.length === 0 ? title : `${selected.length} selected`}
+              {selected.length === 0 
+               ? title 
+               : selected.length === 1 
+                 ? selected[0] 
+                 : `${selected.length} selected`}
            </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
