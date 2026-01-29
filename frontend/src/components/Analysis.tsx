@@ -240,7 +240,7 @@ export default function Analysis() {
                               className="bg-white dark:bg-slate-900"
                           />
                           <MultiSelectModal
-                              title="Type"
+                              title="Transaction Type"
                               options={filterOptions?.types || []}
                               selected={filters.type}
                               onChange={(val) => setFilters(prev => ({ ...prev, type: val }))}

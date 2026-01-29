@@ -98,7 +98,7 @@ export default function Layout({ children, activeTab, onTabChange, onLogout }: L
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-md mx-auto md:max-w-4xl md:mx-0 w-full relative">
+      <main className="flex-1 max-w-md mx-auto md:max-w-none md:mx-0 w-full relative">
         {/* Mobile Header */}
         <header className="md:hidden px-6 pt-12 pb-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 dark:border-slate-800">
            <div className="flex justify-between items-end">
