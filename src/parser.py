@@ -120,9 +120,6 @@ class TransactionParser:
 
     def _categorize(self, parsed_data: TransactionData, remarks: str, full_message: str, categories_list: Optional[List[str]] = None, keywords_map: Optional[Dict] = None, api_key: Optional[str] = None) -> str:
         # 1. Keyword based (Simple)
-        description = parsed_data.description or ""
-        text_to_check = (description + " " + remarks).lower()
-
         if keywords_map:
             keywords = keywords_map
         elif categories_list:
@@ -130,9 +127,18 @@ class TransactionParser:
         else:
             keywords = {}
 
+        # Check remarks first
+        text_to_check = remarks.lower()
         if "disbursement" in text_to_check:
             return "disbursement"
+        for cat, words in keywords.items():
+            if any(word in text_to_check for word in words):
+                return cat
 
+        # Check description next
+        text_to_check = (parsed_data.description or "").lower()
+        if "disbursement" in text_to_check:
+            return "disbursement"
         for cat, words in keywords.items():
             if any(word in text_to_check for word in words):
                 return cat
