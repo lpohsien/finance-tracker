@@ -97,3 +97,15 @@ def read_users_me(current_user: User = Depends(get_current_user)):
     # )
     return current_user
 
+@router.delete("/me", status_code=204)
+def delete_user(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """
+    Deletes the current user and all associated data (cascaded).
+    """
+    # Merge the user object into the current session to ensure it's attached to the correct session
+    # This handles cases where dependency injection might provide different session instances
+    user_to_delete = db.merge(current_user)
+    db.delete(user_to_delete)
+    db.commit()
+    return
+

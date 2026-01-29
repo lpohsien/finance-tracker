@@ -1,7 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi.responses import StreamingResponse
 from typing import List, Dict, Optional
 from pydantic import BaseModel
 import uuid
+import csv
+import io
+import json
 
 from api.dependencies import get_current_user, get_api_key
 from api.models import User
@@ -98,6 +102,22 @@ async def set_api_key(
         db.commit()
 
     return {"message": "API Key updated"}
+
+@router.get("/export")
+async def export_config(current_user: User = Depends(get_current_user)):
+    """
+    Exports user configuration as a JSON file.
+    """
+    config = storage.get_user_config(current_user)
+    
+    json_content = json.dumps(config, indent=2)
+    
+    return StreamingResponse(
+        io.BytesIO(json_content.encode('utf-8')),
+        media_type="application/json",
+        headers={"Content-Disposition": "attachment; filename=config_export.json"}
+    )
+
 
 @router.delete("/apikey")
 async def delete_api_key(

@@ -6,12 +6,24 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Plus, Trash2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function Settings() {
   const queryClient = useQueryClient();
   const [apiKey, setApiKey] = useState('');
   const [exportToken, setExportToken] = useState('');
   const [newCat, setNewCat] = useState('');
+  
+  // Delete Account States
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isFinalConfirmOpen, setIsFinalConfirmOpen] = useState(false);
 
   const { data: config, isLoading } = useQuery({
     queryKey: ['config'],
@@ -51,7 +63,46 @@ export default function Settings() {
           queryClient.invalidateQueries({ queryKey: ['config'] });
       }
   });
+  
+  const deleteAccountMutation = useMutation({
+    mutationFn: () => api.delete('/api/auth/me'),
+    onSuccess: () => {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+    },
+    onError: () => {
+        alert("Failed to delete account");
+    }
+  });
 
+  const handleExportData = async () => {
+    try {
+        // Transactions
+        const txRes = await api.get('/api/transactions/export?export_all=true', { responseType: 'blob' });
+        const txUrl = window.URL.createObjectURL(new Blob([txRes.data]));
+        const txLink = document.createElement('a');
+        txLink.href = txUrl;
+        txLink.setAttribute('download', 'transactions_export_all.csv');
+        document.body.appendChild(txLink);
+        txLink.click();
+        txLink.remove();
+
+        // Config
+        const cfgRes = await api.get('/api/config/export', { responseType: 'blob' });
+        const cfgUrl = window.URL.createObjectURL(new Blob([cfgRes.data]));
+        const cfgLink = document.createElement('a');
+        cfgLink.href = cfgUrl;
+        cfgLink.setAttribute('download', 'config_export.json');
+        document.body.appendChild(cfgLink);
+        cfgLink.click();
+        cfgLink.remove();
+        
+        // Do not auto-advance. Let user click Proceed when ready.
+    } catch (e) {
+        console.error("Export failed", e);
+        alert("Export failed");
+    }
+  };
 
   if (isLoading) return <div className="p-8 text-center text-gray-400">Loading settings...</div>;
 
@@ -147,6 +198,57 @@ export default function Settings() {
             </Card>
         </div>
       </div>
+
+      {/* Danger Zone */}
+      <div className="pt-8 border-t border-red-200 dark:border-red-900/30">
+          <h3 className="font-bold px-2 mb-4 text-red-600 dark:text-red-400">Danger Zone</h3>
+          <Card className="border-red-200 dark:border-red-900/30">
+              <CardHeader>
+                  <CardTitle className="text-lg text-red-600 dark:text-red-400">Delete Account</CardTitle>
+                  <CardDescription>Permanently remove your account and all data.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                  <Button variant="destructive" onClick={() => setIsDeleteModalOpen(true)}>Delete Account</Button>
+              </CardContent>
+          </Card>
+      </div>
+
+      {/* Warning Modal */}
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Account?</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. This will permanently delete your account and remove your data from our servers.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 py-4">
+               <p className="text-sm">We recommend exporting your data before proceeding.</p>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>Cancel</Button>
+            <Button variant="secondary" onClick={handleExportData}>Export All Data</Button>
+            <Button variant="destructive" onClick={() => { setIsDeleteModalOpen(false); setIsFinalConfirmOpen(true); }}>Proceed</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Final Confirmation Modal */}
+      <Dialog open={isFinalConfirmOpen} onOpenChange={setIsFinalConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Are you absolutely sure?</DialogTitle>
+            <DialogDescription>
+              This is your last chance to back out. All your transactions and settings will be wiped immediately.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsFinalConfirmOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => deleteAccountMutation.mutate()}>Yes, Delete Account</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

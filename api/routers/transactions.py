@@ -1,4 +1,3 @@
-from calendar import calendar
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Request, UploadFile, File
 from fastapi.responses import StreamingResponse, JSONResponse
 from typing import List, Optional, Dict, Any
@@ -230,6 +229,7 @@ async def export_transactions(
     search: Optional[str] = Query(None),
     match_case: bool = False,
     use_regex: bool = False,
+    export_all: bool = False,
     current_user: User = Depends(get_current_user)
 ):
     with SessionLocal() as db:
@@ -243,7 +243,8 @@ async def export_transactions(
         # Consistent with View: if no filter, default to current month?
         # Specification says "export transactions in the transactions view". 
         # View defaults to current month. So yes.
-        if not has_filter:
+        # UPDATE: If export_all is True, disregard default date filter
+        if not has_filter and not export_all:
             today = datetime.now()
             start_date = today.replace(day=1).strftime('%Y-%m-%d')
             end_date = today.strftime('%Y-%m-%d')
@@ -350,8 +351,7 @@ async def list_transactions(
         if not has_filter:
             today = datetime.now()
             start_date = today.replace(day=1).strftime('%Y-%m-%d')
-            last_day = calendar.monthrange(today.year, today.month)[1]
-            end_date = today.replace(day=last_day).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
 
         query = apply_filters(
             query, start_date, end_date,
