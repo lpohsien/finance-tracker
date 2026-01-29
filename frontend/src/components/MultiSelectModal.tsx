@@ -12,7 +12,7 @@ interface MultiSelectProps {
   className?: string;
 }
 
-export function MultiSelect({ title, options, selected, onChange, className }: MultiSelectProps) {
+export function MultiSelectModal({ title, options, selected, onChange, className }: MultiSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
 
@@ -56,7 +56,7 @@ export function MultiSelect({ title, options, selected, onChange, className }: M
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[700px] h-[600px] flex flex-col gap-0 p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[700px] h-[600px] flex flex-col gap-0 p-0 overflow-hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
         <DialogHeader className="p-4 pb-2">
             <DialogTitle>Select {title}</DialogTitle>
         </DialogHeader>

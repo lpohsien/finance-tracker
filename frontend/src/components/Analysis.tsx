@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Search, Trash2, Download, Upload, Filter } from 'lucide-react';
 import { TransactionDetailModal } from './TransactionDetailModal';
 import { ImportWizard } from './ImportWizard';
-import { MultiSelect } from './MultiSelect';
+import { MultiSelectModal } from './MultiSelectModal';
 
 // Simple Collapsible implementation
 const SimpleCollapsible = ({ children, title, open, onOpenChange }: any) => (
@@ -225,21 +225,21 @@ export default function Analysis() {
                   <div className="col-span-1 sm:col-span-2 space-y-1">
                       <Label className="text-xs text-gray-500">Entities</Label>
                       <div className="flex flex-col sm:flex-row gap-2">
-                          <MultiSelect
+                          <MultiSelectModal
                               title="Bank"
                               options={filterOptions?.banks || []}
                               selected={filters.bank}
                               onChange={(val) => setFilters(prev => ({ ...prev, bank: val }))}
                               className="bg-white dark:bg-slate-900"
                           />
-                          <MultiSelect
+                          <MultiSelectModal
                               title="Account"
                               options={filterOptions?.accounts || []}
                               selected={filters.account}
                               onChange={(val) => setFilters(prev => ({ ...prev, account: val }))}
                               className="bg-white dark:bg-slate-900"
                           />
-                          <MultiSelect
+                          <MultiSelectModal
                               title="Type"
                               options={filterOptions?.types || []}
                               selected={filters.type}
@@ -251,7 +251,7 @@ export default function Analysis() {
 
                   <div className="space-y-1">
                       <Label className="text-xs text-gray-500">Categories</Label>
-                      <MultiSelect
+                      <MultiSelectModal
                           title="Select Categories..."
                           options={filterOptions?.categories || []}
                           selected={filters.category}
