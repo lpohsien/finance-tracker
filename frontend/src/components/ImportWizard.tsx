@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,20 @@ export function ImportWizard({ onClose, open }: ImportWizardProps) {
   const [result, setResult] = useState<any>(null);
   const [errorCSV, setErrorCSV] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      // Reset state when the dialog opens
+      setFile(null);
+      setStep('upload');
+      setResult(null);
+      setErrorCSV(null);
+      setIsRetrying(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  }, [open]);
 
   const importMutation = useMutation({
     mutationFn: async (vars: { file: File, createCategories: boolean }) => {
