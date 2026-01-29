@@ -159,7 +159,7 @@ export default function Analysis() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input 
               type="text" 
-              placeholder="Search description/raw (Supports Filters)" 
+              placeholder="Search description (Supports Filters)" 
               className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-100 outline-none text-sm dark:text-white"
               value={filters.search}
               onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
@@ -203,16 +203,6 @@ export default function Analysis() {
                           />
                       </div>
                   </div>
-                  
-                  <div className="space-y-1">
-                      <Label className="text-xs text-gray-500">Details</Label>
-                      <Input 
-                        placeholder="Type: Card, Transfer..." 
-                         className="bg-white dark:bg-slate-900"
-                        value={filters.type}
-                        onChange={(e) => setFilters(prev => ({...prev, type: e.target.value}))}
-                      />
-                  </div>
 
                   <div className="space-y-1">
                       <Label className="text-xs text-gray-500">Entities</Label>
@@ -228,6 +218,12 @@ export default function Analysis() {
                              className="bg-white dark:bg-slate-900"
                             value={filters.account}
                             onChange={(e) => setFilters(prev => ({...prev, account: e.target.value}))}
+                          />
+                          <Input 
+                            placeholder="Type: Card, Transfer..." 
+                            className="bg-white dark:bg-slate-900"
+                            value={filters.type}
+                            onChange={(e) => setFilters(prev => ({...prev, type: e.target.value}))}
                           />
                       </div>
                   </div>
