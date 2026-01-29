@@ -48,7 +48,8 @@ def apply_filters(
             pass
     if end_date:
         try:
-            ed = date_parser.parse(end_date)
+            ed = date_parser.parse(end_date).replace(hour=23, minute=59, second=59, microsecond=999999)
+
             query = query.filter(DBTransaction.timestamp <= ed)
         except:
             pass
