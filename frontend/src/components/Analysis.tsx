@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Search, Trash2, Download, Upload, Filter } from 'lucide-react';
 import { TransactionDetailModal } from './TransactionDetailModal';
 import { ImportWizard } from './ImportWizard';
+import { MultiSelect } from './MultiSelect';
 
 // Simple Collapsible implementation
 const SimpleCollapsible = ({ children, title, open, onOpenChange }: any) => (
@@ -31,16 +32,33 @@ export default function Analysis() {
   const [showFilters, setShowFilters] = useState(false);
 
   // Filters State
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<{
+    start_date: string;
+    end_date: string;
+    category: string[];
+    account: string[];
+    bank: string[];
+    type: string[];
+    search: string;
+    match_case: boolean;
+    use_regex: boolean;
+  }>({
     start_date: '',
     end_date: '',
-    category: '', // Comma separated for UI simplification
-    account: '',
-    bank: '',
-    type: '',
+    category: [],
+    account: [],
+    bank: [],
+    type: [],
     search: '',
     match_case: false,
     use_regex: false
+  });
+
+  // Fetch filter options
+  const { data: filterOptions } = useQuery({
+    queryKey: ['filterOptions'],
+    queryFn: async () => (await api.get('/api/transactions/options')).data,
+    placeholderData: { categories: [], banks: [], accounts: [], types: [] }
   });
 
   // Prefetch config just in case, though not used directly in render
@@ -55,10 +73,9 @@ export default function Analysis() {
       // Build Params
       const params = new URLSearchParams();
       
-      // Handle comma-separated lists from inputs
-      const processList = (key: string, val: string) => {
-          if (!val) return;
-          val.split(',').map(s => s.trim()).filter(Boolean).forEach(v => params.append(key, v));
+      const processList = (key: string, val: string[]) => {
+          if (!val || val.length === 0) return;
+          val.forEach(v => params.append(key, v));
       };
 
       processList('category', filters.category);
@@ -96,11 +113,11 @@ export default function Analysis() {
 
   const handleExport = async () => {
       const params = new URLSearchParams();
-      const processList = (key: string, val: string) => {
-          if (!val) return;
-          val.split(',').map(s => s.trim()).filter(Boolean).forEach(v => params.append(key, v));
+      const processList = (key: string, val: string[]) => {
+          if (!val || val.length === 0) return;
+          val.forEach(v => params.append(key, v));
       };
-
+      
       processList('category', filters.category);
       processList('account', filters.account);
       processList('bank', filters.bank);
@@ -137,10 +154,10 @@ export default function Analysis() {
       setFilters({
         start_date: '',
         end_date: '',
-        category: '',
-        account: '',
-        bank: '',
-        type: '',
+        category: [],
+        account: [],
+        bank: [],
+        type: [],
         search: '',
         match_case: false,
         use_regex: false
@@ -149,6 +166,7 @@ export default function Analysis() {
 
   const activeFilterCount = Object.entries(filters).filter(([k, v]) => {
       if (k === 'match_case' || k === 'use_regex') return false;
+      if (Array.isArray(v)) return v.length > 0;
       return !!v;
   }).length;
 
@@ -204,37 +222,41 @@ export default function Analysis() {
                       </div>
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="col-span-1 sm:col-span-2 space-y-1">
                       <Label className="text-xs text-gray-500">Entities</Label>
-                      <div className="flex gap-2">
-                          <Input 
-                            placeholder="Bank" 
-                             className="bg-white dark:bg-slate-900"
-                            value={filters.bank}
-                            onChange={(e) => setFilters(prev => ({...prev, bank: e.target.value}))}
+                      <div className="flex flex-col sm:flex-row gap-2">
+                          <MultiSelect
+                              title="Bank"
+                              options={filterOptions?.banks || []}
+                              selected={filters.bank}
+                              onChange={(val) => setFilters(prev => ({ ...prev, bank: val }))}
+                              className="bg-white dark:bg-slate-900"
                           />
-                          <Input 
-                            placeholder="Account" 
-                             className="bg-white dark:bg-slate-900"
-                            value={filters.account}
-                            onChange={(e) => setFilters(prev => ({...prev, account: e.target.value}))}
+                          <MultiSelect
+                              title="Account"
+                              options={filterOptions?.accounts || []}
+                              selected={filters.account}
+                              onChange={(val) => setFilters(prev => ({ ...prev, account: val }))}
+                              className="bg-white dark:bg-slate-900"
                           />
-                          <Input 
-                            placeholder="Type: Card, Transfer..." 
-                            className="bg-white dark:bg-slate-900"
-                            value={filters.type}
-                            onChange={(e) => setFilters(prev => ({...prev, type: e.target.value}))}
+                          <MultiSelect
+                              title="Type"
+                              options={filterOptions?.types || []}
+                              selected={filters.type}
+                              onChange={(val) => setFilters(prev => ({ ...prev, type: val }))}
+                              className="bg-white dark:bg-slate-900"
                           />
                       </div>
                   </div>
 
                   <div className="space-y-1">
-                      <Label className="text-xs text-gray-500">Categories (comma sep)</Label>
-                      <Input 
-                        placeholder="Food, Transport..." 
-                         className="bg-white dark:bg-slate-900"
-                        value={filters.category}
-                        onChange={(e) => setFilters(prev => ({...prev, category: e.target.value}))}
+                      <Label className="text-xs text-gray-500">Categories</Label>
+                      <MultiSelect
+                          title="Select Categories..."
+                          options={filterOptions?.categories || []}
+                          selected={filters.category}
+                          onChange={(val) => setFilters(prev => ({ ...prev, category: val }))}
+                          className="bg-white dark:bg-slate-900"
                       />
                   </div>
 

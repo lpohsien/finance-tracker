@@ -292,6 +292,21 @@ async def export_transactions(
             headers={"Content-Disposition": "attachment; filename=transactions_export.csv"}
         )
 
+@router.get("/options")
+async def get_transaction_options(current_user: User = Depends(get_current_user)):
+    with SessionLocal() as db:
+        categories = db.query(DBTransaction.category).filter(DBTransaction.user_id == current_user.id).distinct().all()
+        banks = db.query(DBTransaction.bank).filter(DBTransaction.user_id == current_user.id).distinct().all()
+        accounts = db.query(DBTransaction.account).filter(DBTransaction.user_id == current_user.id).distinct().all()
+        types = db.query(DBTransaction.type).filter(DBTransaction.user_id == current_user.id).distinct().all()
+        
+        return {
+            "categories": sorted([c[0] for c in categories if c[0]]),
+            "banks": sorted([b[0] for b in banks if b[0]]),
+            "accounts": sorted([a[0] for a in accounts if a[0]]),
+            "types": sorted([t[0] for t in types if t[0]])
+        }
+
 @router.get("/{transaction_id}", response_model=TransactionResponse)
 async def get_transaction(
     transaction_id: str,
