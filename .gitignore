@@ -5,3 +5,5 @@ __pycache__/
 venv/
 data/
 .pytest_cache/
+frontend/
+node_modules/
