@@ -31,6 +31,12 @@ export default function Analysis() {
   const [showImport, setShowImport] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
 
+  // Initialize default dates (Current Month)
+  const now = new Date();
+  const defaultStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  const lastDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const defaultEnd = `${lastDate.getFullYear()}-${String(lastDate.getMonth() + 1).padStart(2, '0')}-${String(lastDate.getDate()).padStart(2, '0')}`;
+
   // Filters State
   const [filters, setFilters] = useState<{
     start_date: string;
@@ -43,8 +49,8 @@ export default function Analysis() {
     match_case: boolean;
     use_regex: boolean;
   }>({
-    start_date: '',
-    end_date: '',
+    start_date: defaultStart,
+    end_date: defaultEnd,
     category: [],
     account: [],
     bank: [],
@@ -92,11 +98,7 @@ export default function Analysis() {
           if (filters.use_regex) params.append('use_regex', 'true');
       }
 
-      // Default to nothing? The backend defaults to current month if NO params.
-      // If we have empty filters, we send nothing, backend defaults.
-      // If we have filters, we send them.
-
-      params.append('limit', '500'); // Increase limit for analysis view
+      params.append('limit', '100'); // Increase limit for analysis view
 
       const res = await api.get('/api/transactions', { params: params });
       return res.data;
@@ -152,8 +154,8 @@ export default function Analysis() {
 
   const clearFilters = () => {
       setFilters({
-        start_date: '',
-        end_date: '',
+        start_date: defaultStart,
+        end_date: defaultEnd,
         category: [],
         account: [],
         bank: [],
@@ -166,6 +168,8 @@ export default function Analysis() {
 
   const activeFilterCount = Object.entries(filters).filter(([k, v]) => {
       if (k === 'match_case' || k === 'use_regex') return false;
+      if (k === 'start_date' && v === defaultStart) return false;
+      if (k === 'end_date' && v === defaultEnd) return false;
       if (Array.isArray(v)) return v.length > 0;
       return !!v;
   }).length;
