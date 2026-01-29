@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
-import { X, User, Calendar, MessageCircle } from 'lucide-react';
+import { X, User, Calendar, MessageCircle, Moon, Sun, LogOut } from 'lucide-react';
+import { useTheme } from '@/components/theme-provider';
 
 interface UserDetail {
   id: number;
@@ -14,6 +15,24 @@ interface UserDetailModalProps {
 }
 
 export function UserDetailModal({ onClose }: UserDetailModalProps) {
+  const { theme, setTheme } = useTheme();
+
+  const toggleTheme = () => {
+    if (theme === "dark") {
+      setTheme("light")
+    } else if (theme === "light") {
+      setTheme("dark")
+    } else {
+      const systemIsDark = window.matchMedia("(prefers-color-scheme: dark)").matches
+      setTheme(systemIsDark ? "light" : "dark")
+    }
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+  };
+
   const { data: user, isLoading, error } = useQuery<UserDetail>({
     queryKey: ['me'],
     queryFn: async () => {
@@ -90,6 +109,35 @@ export function UserDetailModal({ onClose }: UserDetailModalProps) {
                  Failed to load user details
              </div>
         )}
+
+        <div className="space-y-4 mt-4 pt-4 border-t border-gray-100 dark:border-slate-800">
+            <button 
+                onClick={toggleTheme}
+                className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-900 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                title="Toggle Theme"
+            >
+                <div className="flex items-center gap-3">
+                    {theme === 'dark' ? (
+                        <Moon className="text-gray-400 w-5 h-5" />
+                    ) : (
+                        <Sun className="text-gray-400 w-5 h-5" />
+                    )}
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Theme</span>
+                </div>
+                <span className="font-mono text-sm font-bold capitalize">{theme}</span>
+            </button>
+
+            <button 
+                onClick={handleLogout}
+                className="w-full flex items-center justify-between p-4 bg-red-50 dark:bg-red-900/10 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors group"
+                title="Log Out"
+            >
+                <div className="flex items-center gap-3">
+                    <LogOut className="text-red-400 w-5 h-5 group-hover:text-red-500" />
+                    <span className="text-sm font-medium text-red-600 dark:text-red-400 group-hover:text-red-700 dark:group-hover:text-red-300">Log Out</span>
+                </div>
+            </button>
+        </div>
       </div>
     </div>
   );
