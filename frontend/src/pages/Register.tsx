@@ -16,7 +16,7 @@ export default function Register() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post('/auth/register', { username, password });
+      await api.post('/api/auth/register', { username, password });
       // Auto login or redirect to login
       navigate('/login');
     } catch (err: any) {

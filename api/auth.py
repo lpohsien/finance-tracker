@@ -12,7 +12,7 @@ from api.models import User
 from src.security import verify_password, get_password_hash, encrypt_value
 from api.dependencies import get_current_user
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 SECRET_KEY = os.getenv("SECRET_KEY", "unsafe_secret_key_change_me")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")

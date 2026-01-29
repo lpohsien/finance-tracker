@@ -17,7 +17,7 @@ export function UserDetailModal({ onClose }: UserDetailModalProps) {
   const { data: user, isLoading, error } = useQuery<UserDetail>({
     queryKey: ['me'],
     queryFn: async () => {
-      const res = await api.get('/auth/me');
+      const res = await api.get('/api/auth/me');
       return res.data;
     }
   });

@@ -20,7 +20,7 @@ export default function Login() {
       formData.append('username', username);
       formData.append('password', password);
 
-      const response = await api.post('/auth/token', formData);
+      const response = await api.post('/api/auth/token', formData);
       localStorage.setItem('token', response.data.access_token);
       navigate('/');
     } catch (err: any) {

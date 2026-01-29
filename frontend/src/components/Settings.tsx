@@ -31,7 +31,7 @@ export default function Settings() {
   });
 
   const generateTokenMutation = useMutation({
-    mutationFn: () => api.post('/auth/export-token'),
+    mutationFn: () => api.post('/api/auth/export-token'),
     onSuccess: (data) => {
       setExportToken(data.data.access_token);
     }
