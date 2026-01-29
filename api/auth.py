@@ -86,3 +86,14 @@ def generate_export_token(current_user: User = Depends(get_current_user)):
         expires_delta=expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.get("/me", response_model=UserResponse)
+def read_users_me(current_user: User = Depends(get_current_user)):
+    # user_details = UserResponse(
+    #     id=current_user.id,
+    #     username=current_user.username,
+    #     telegram_id=current_user.telegram_id,
+    #     created_at=current_user.created_at
+    # )
+    return current_user
+

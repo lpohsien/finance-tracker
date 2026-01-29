@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { LayoutDashboard, BarChart3, Settings as SettingsIcon, LogOut, Plus, Target } from 'lucide-react';
 import { Button } from './ui/button';
 import { QuickEntryModal } from './QuickEntryModal';
+import { UserDetailModal } from './UserDetailModal';
 import { ThemeToggle } from './ThemeToggle';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
@@ -17,6 +18,7 @@ interface LayoutProps {
 
 export default function Layout({ children, activeTab, onTabChange, onLogout }: LayoutProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const queryClient = useQueryClient();
 
   // Fetch config for categories for the Modal
@@ -106,7 +108,10 @@ export default function Layout({ children, activeTab, onTabChange, onLogout }: L
              </div>
              <div className="flex items-center gap-3">
                 <ThemeToggle />
-                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold">
+                <div 
+                  className="w-10 h-10 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-900 transition-colors"
+                  onClick={() => setIsUserModalOpen(true)}
+                >
                   ME
                 </div>
              </div>
@@ -121,7 +126,10 @@ export default function Layout({ children, activeTab, onTabChange, onLogout }: L
                 <Button onClick={() => setIsModalOpen(true)} size="sm" className="hidden md:flex">
                     <Plus className="mr-2 h-4 w-4" /> Add Transaction
                 </Button>
-                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold">
+                <div 
+                  className="w-10 h-10 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-900 transition-colors"
+                  onClick={() => setIsUserModalOpen(true)}
+                >
                   ME
                 </div>
              </div>
@@ -164,6 +172,11 @@ export default function Layout({ children, activeTab, onTabChange, onLogout }: L
           onAdd={(data) => addTransactionMutation.mutateAsync(data)}
           isAdding={addTransactionMutation.isPending}
         />
+      )}
+
+      {/* User Detail Modal */}
+      {isUserModalOpen && (
+        <UserDetailModal onClose={() => setIsUserModalOpen(false)} />
       )}
     </div>
   );

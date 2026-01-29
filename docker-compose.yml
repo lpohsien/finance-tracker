@@ -9,7 +9,7 @@ services:
       - DATABASE_URL=sqlite:///./data/finance.db
       - SECRET_KEY=${SECRET_KEY}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
-      - CORS_ORIGINS=http://localhost:5173,http://localhost:8000
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:8000,http://172.20.10.10:5173
     volumes:
       - ./data:/app/data
     restart: unless-stopped
