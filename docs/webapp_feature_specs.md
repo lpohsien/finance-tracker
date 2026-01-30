@@ -46,3 +46,17 @@ Add functionality in the settings page to allow users to delete their account.
         - Log the user out immediately.
         - Delete all user data from the database.
     - **On Cancel/Close**: Abort deletion.
+
+TODO:
+**Task: More functionalities for advanced filtering**
+1. Add an amount filter to the Analysis tab allowing users to filter transactions by a specific value.
+2. Add shortcut toggle buttons for user to select common date ranges i.e. "Today", "This week", "This Month" and "This Year".
+3. To make space for the new amount filter and date range shortcuts, redesign the filter layout to ensure all elements are clearly visible and accessible without cluttering the interface. Move the regex and match case toggles to be icons within the description search input box, with tooltips explaining their functions.
+
+**Requirements:**
+1. **Conditions**: Support "Greater Than" and "Less Than" operators.
+2. **Modes**: Support both **Signed Value** (standard comparison) and **Absolute Value** (magnitude comparison) filtering.
+   - *Example (Absolute > 30)*: Matches both `$40` and `-$40`.
+   - *Efficiency Note*: Implement absolute value logic using range comparisons (e.g., `abs(val) > X` = `val > X OR val < -X` and `abs(val) < X` = `val < X AND val > -X`) rather than applying the absolute value functions to the column.
+3. **UI Integration**: Ensure all new controls fit cleanly within the existing filter interface without causing overflow, overlap, or truncation of other elements, and across various viewport sizes. 
+
