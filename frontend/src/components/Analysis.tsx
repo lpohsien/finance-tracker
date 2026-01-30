@@ -290,7 +290,7 @@ export default function Analysis() {
 
       {showFilters && (
           <SimpleCollapsible title="Advanced Filters" open={showFilters} onOpenChange={setShowFilters}>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              <div className="flex flex-wrap gap-4">
                   {/* Row 1: Date & Amount */}
                   <div className="space-y-2 col-span-1 md:col-span-2">
                        <Label className="text-xs text-gray-500">Date Range</Label>
@@ -300,14 +300,14 @@ export default function Analysis() {
                               className="bg-white dark:bg-slate-900 flex-1 min-w-[110px]"
                               value={filters.start_date}
                               onChange={(e) => setFilters(prev => ({...prev, start_date: e.target.value}))} 
-                            />
-                            <div className="flex items-center text-gray-400 justify-center">-</div>
+                        />
+                        <div className="flex items-center text-gray-400 justify-center">-</div>
                             <Input 
                               type="date" 
                               className="bg-white dark:bg-slate-900 flex-1 min-w-[110px]"
                               value={filters.end_date}
                               onChange={(e) => setFilters(prev => ({...prev, end_date: e.target.value}))} 
-                            />
+                        />
                        </div>
                        <div className="flex flex-wrap gap-2 mt-2">
                             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setDateRange('today')}>Today</Button>
@@ -317,7 +317,7 @@ export default function Analysis() {
                        </div>
                   </div>
 
-                  <div className="space-y-2 col-span-1 md:col-span-2">
+                  <div className="space-y-2 w-full xl:w-[calc(50%-0.5rem)]">
                        <Label className="text-xs text-gray-500">Amount</Label>
                        <div className="flex gap-2 items-center">
                             <select 
@@ -348,9 +348,9 @@ export default function Analysis() {
                   </div>
 
                   {/* Row 2: Taxonomies */}
-                  <div className="col-span-1 md:col-span-2 space-y-2">
+                  <div className="space-y-2 w-full xl:w-[calc(50%-0.5rem)]">
                       <Label className="text-xs text-gray-500">Entities</Label>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-3 gap-2 flex-1 min-w-[382px]">
                           <MultiSelectModal
                               title="Bank"
                               options={filterOptions?.banks || []}
@@ -375,7 +375,7 @@ export default function Analysis() {
                       </div>
                   </div>
 
-                  <div className="col-span-1 md:col-span-2 space-y-2">
+                  <div className="space-y-2 w-full xl:w-[calc(50%-0.5rem)]">
                       <Label className="text-xs text-gray-500">Categories</Label>
                       <MultiSelectModal
                           title="Select Categories..."
@@ -386,7 +386,7 @@ export default function Analysis() {
                       />
                   </div>
                   
-                  <div className="col-span-1 md:col-span-4 flex justify-end">
+                  <div className="w-full flex justify-end">
                        <Button variant="ghost" size="sm" onClick={clearFilters} className="text-red-500 hover:text-red-700 hover:bg-red-50">
                            Clear All Filters
                        </Button>
