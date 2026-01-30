@@ -35,7 +35,10 @@ def apply_filters(
     banks: Optional[List[str]] = None,
     search: Optional[str] = None,
     match_case: bool = False,
-    use_regex: bool = False
+    use_regex: bool = False,
+    amount_value: Optional[float] = None,
+    amount_operator: Optional[str] = None,
+    amount_mode: Optional[str] = 'signed'
 ):
     # Time Filters
     if start_date:
@@ -52,6 +55,26 @@ def apply_filters(
         except:
             pass
             
+    # Amount Filters
+    if amount_value is not None and amount_operator:
+        try:
+            val = float(amount_value)
+            if amount_mode == 'absolute':
+                # abs(val) > X  =>  val > X OR val < -X
+                # abs(val) < X  =>  val < X AND val > -X
+                if amount_operator == 'gt':
+                    query = query.filter(or_(DBTransaction.amount > val, DBTransaction.amount < -val))
+                elif amount_operator == 'lt':
+                    query = query.filter(and_(DBTransaction.amount < val, DBTransaction.amount > -val))
+            else:
+                # Signed
+                if amount_operator == 'gt':
+                    query = query.filter(DBTransaction.amount > val)
+                elif amount_operator == 'lt':
+                    query = query.filter(DBTransaction.amount < val)
+        except ValueError:
+            pass
+
     # List Filters
     if categories:
         query = query.filter(DBTransaction.category.in_(categories))
@@ -230,6 +253,9 @@ async def export_transactions(
     match_case: bool = False,
     use_regex: bool = False,
     export_all: bool = False,
+    amount_value: Optional[float] = Query(None),
+    amount_operator: Optional[str] = Query(None), # 'gt' or 'lt'
+    amount_mode: Optional[str] = Query('signed'), # 'signed' or 'absolute'
     current_user: User = Depends(get_current_user)
 ):
     with SessionLocal() as db:
@@ -237,7 +263,8 @@ async def export_transactions(
         
         has_filter = any([
             start_date, end_date, 
-            categories, accounts, types, banks, search
+            categories, accounts, types, banks, search,
+            amount_value
         ])
         
         # Consistent with View: if no filter, default to current month?
@@ -248,11 +275,12 @@ async def export_transactions(
             today = datetime.now()
             start_date = today.replace(day=1).strftime('%Y-%m-%d')
             end_date = today.strftime('%Y-%m-%d')
-
+            
         query = apply_filters(
             query, start_date, end_date,
             categories, accounts, types, banks, 
-            search, match_case, use_regex
+            search, match_case, use_regex,
+            amount_value, amount_operator, amount_mode
         )
             
         query = query.order_by(DBTransaction.timestamp.desc())
@@ -337,12 +365,16 @@ async def list_transactions(
     search: Optional[str] = Query(None),
     match_case: bool = False,
     use_regex: bool = False,
+    amount_value: Optional[float] = Query(None),
+    amount_operator: Optional[str] = Query(None),
+    amount_mode: Optional[str] = Query('signed'), 
     current_user: User = Depends(get_current_user)
 ):
     # Default to current month if no filtering provided at all
     has_filter = any([
         start_date, end_date, 
-        categories, accounts, types, banks, search
+        categories, accounts, types, banks, search,
+        amount_value
     ])
     
     with SessionLocal() as db:
@@ -356,7 +388,8 @@ async def list_transactions(
         query = apply_filters(
             query, start_date, end_date,
             categories, accounts, types, banks, 
-            search, match_case, use_regex
+            search, match_case, use_regex,
+            amount_value, amount_operator, amount_mode,
         )
 
         query = query.order_by(DBTransaction.timestamp.desc())

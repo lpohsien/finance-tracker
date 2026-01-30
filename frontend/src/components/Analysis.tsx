@@ -5,10 +5,11 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Search, Trash2, Download, Upload, Filter } from 'lucide-react';
+import { Search, Trash2, Download, Upload, Filter, Regex, CaseSensitive } from 'lucide-react';
 import { TransactionDetailModal } from './TransactionDetailModal';
 import { ImportWizard } from './ImportWizard';
 import { MultiSelectModal } from './MultiSelectModal';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Simple Collapsible implementation
 const SimpleCollapsible = ({ children, title, open, onOpenChange }: any) => (
@@ -48,6 +49,9 @@ export default function Analysis() {
     search: string;
     match_case: boolean;
     use_regex: boolean;
+    amount_value: string;
+    amount_operator: 'gt' | 'lt';
+    amount_mode: 'signed' | 'absolute';
   }>({
     start_date: defaultStart,
     end_date: defaultEnd,
@@ -57,7 +61,10 @@ export default function Analysis() {
     type: [],
     search: '',
     match_case: false,
-    use_regex: false
+    use_regex: false,
+    amount_value: '',
+    amount_operator: 'gt',
+    amount_mode: 'signed'
   });
 
   // Fetch filter options
@@ -98,6 +105,12 @@ export default function Analysis() {
           if (filters.use_regex) params.append('use_regex', 'true');
       }
 
+      if (filters.amount_value) {
+          params.append('amount_value', filters.amount_value);
+          params.append('amount_operator', filters.amount_operator);
+          params.append('amount_mode', filters.amount_mode);
+      }
+
       params.append('limit', '100'); // Increase limit for analysis view
 
       const res = await api.get('/api/transactions', { params: params });
@@ -134,9 +147,15 @@ export default function Analysis() {
           if (filters.use_regex) params.append('use_regex', 'true');
       }
 
+      if (filters.amount_value) {
+          params.append('amount_value', filters.amount_value);
+          params.append('amount_operator', filters.amount_operator);
+          params.append('amount_mode', filters.amount_mode);
+      }
+
       // Trigger download
       try {
-        const response = await api.get('/api/transactions/export', { 
+        const response = await api.get('/api/transactions/export', {  
             params: params,
             responseType: 'blob' 
         });
@@ -162,12 +181,46 @@ export default function Analysis() {
         type: [],
         search: '',
         match_case: false,
-        use_regex: false
+        use_regex: false,
+        amount_value: '',
+        amount_operator: 'gt',
+        amount_mode: 'signed'
       });
+  };
+
+  // Date Shortcuts
+  const setDateRange = (type: 'today' | 'week' | 'month' | 'year') => {
+      const today = new Date();
+      const format = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      
+      let start = new Date(today);
+      let end = new Date(today);
+
+      switch(type) {
+          case 'today':
+              // start = end = today
+              break;
+          case 'week':
+              const day = today.getDay();
+              const diff = today.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+              start.setDate(diff);
+              end.setDate(start.getDate() + 6);
+              break;
+          case 'month':
+              start = new Date(today.getFullYear(), today.getMonth(), 1);
+              end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+              break;
+          case 'year':
+              start = new Date(today.getFullYear(), 0, 1);
+              end = new Date(today.getFullYear(), 11, 31);
+              break;
+      }
+      setFilters(prev => ({ ...prev, start_date: format(start), end_date: format(end) }));
   };
 
   const activeFilterCount = Object.entries(filters).filter(([k, v]) => {
       if (k === 'match_case' || k === 'use_regex') return false;
+      if (k === 'amount_operator' || k === 'amount_mode') return false;
       if (k === 'start_date' && v === defaultStart) return false;
       if (k === 'end_date' && v === defaultEnd) return false;
       if (Array.isArray(v)) return v.length > 0;
@@ -181,11 +234,41 @@ export default function Analysis() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input 
               type="text" 
-              placeholder="Search description (Supports Filters)" 
-              className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-100 outline-none text-sm dark:text-white"
+              placeholder="Search description" 
+              className="w-full pl-10 pr-20 py-2 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-100 outline-none text-sm dark:text-white"
               value={filters.search}
               onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
             />
+            {/* Search Toggles */}
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                 <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                             <button
+                                onClick={() => setFilters(prev => ({ ...prev, match_case: !prev.match_case }))}
+                                className={`p-1 rounded transition-colors ${filters.match_case ? 'text-blue-600 bg-blue-50' : 'text-gray-400 hover:text-gray-600'}`}
+                             >
+                                 <CaseSensitive size={18} />
+                             </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Match Case</TooltipContent>
+                    </Tooltip>
+                 </TooltipProvider>
+
+                 <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                             <button
+                                onClick={() => setFilters(prev => ({ ...prev, use_regex: !prev.use_regex }))}
+                                className={`p-1 rounded transition-colors ${filters.use_regex ? 'text-blue-600 bg-blue-50' : 'text-gray-400 hover:text-gray-600'}`}
+                             >
+                                 <Regex size={18} />
+                             </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Use Regex</TooltipContent>
+                    </Tooltip>
+                 </TooltipProvider>
+            </div>
           </div>
           <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
                <Button 
@@ -207,85 +290,105 @@ export default function Analysis() {
 
       {showFilters && (
           <SimpleCollapsible title="Advanced Filters" open={showFilters} onOpenChange={setShowFilters}>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 grid-flow-row-dense">
-                  <div className="space-y-1">
-                      <Label className="text-xs text-gray-500">Date Range (start - end)</Label>
-                      <div className="flex flex-wrap gap-2">
-                          <Input 
-                            type="date" 
-                            className="bg-white dark:bg-slate-900 flex-1 min-w-[110px]"
-                            value={filters.start_date}
-                            onChange={(e) => setFilters(prev => ({...prev, start_date: e.target.value}))} 
-                          />
-                          <Input 
-                            type="date" 
-                            className="bg-white dark:bg-slate-900 flex-1 min-w-[110px]"
-                            value={filters.end_date}
-                            onChange={(e) => setFilters(prev => ({...prev, end_date: e.target.value}))} 
-                          />
-                      </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                  {/* Row 1: Date & Amount */}
+                  <div className="space-y-2 col-span-1 md:col-span-2">
+                       <Label className="text-xs text-gray-500">Date Range</Label>
+                       <div className="flex flex-col sm:flex-row gap-2">
+                            <Input 
+                              type="date" 
+                              className="bg-white dark:bg-slate-900 flex-1 min-w-[110px]"
+                              value={filters.start_date}
+                              onChange={(e) => setFilters(prev => ({...prev, start_date: e.target.value}))} 
+                            />
+                            <div className="flex items-center text-gray-400 justify-center">-</div>
+                            <Input 
+                              type="date" 
+                              className="bg-white dark:bg-slate-900 flex-1 min-w-[110px]"
+                              value={filters.end_date}
+                              onChange={(e) => setFilters(prev => ({...prev, end_date: e.target.value}))} 
+                            />
+                       </div>
+                       <div className="flex flex-wrap gap-2 mt-2">
+                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setDateRange('today')}>Today</Button>
+                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setDateRange('week')}>This Week</Button>
+                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setDateRange('month')}>This Month</Button>
+                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setDateRange('year')}>This Year</Button>
+                       </div>
                   </div>
 
-                  <div className="col-span-1 sm:col-span-2 space-y-1">
+                  <div className="space-y-2 col-span-1 md:col-span-2">
+                       <Label className="text-xs text-gray-500">Amount</Label>
+                       <div className="flex gap-2 items-center">
+                            <select 
+                                value={filters.amount_operator}
+                                onChange={(e) => setFilters(prev => ({ ...prev, amount_operator: e.target.value as any }))}
+                                className="h-10 rounded-md border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            >
+                                <option value="gt">Greater {'>'}</option>
+                                <option value="lt">Less {'<'}</option>
+                            </select>
+                            <Input 
+                                type="number" 
+                                placeholder="Value..." 
+                                className="bg-white dark:bg-slate-900 w-32"
+                                value={filters.amount_value}
+                                onChange={(e) => setFilters(prev => ({ ...prev, amount_value: e.target.value }))}
+                            />
+                            <label className="flex items-center gap-2 text-sm cursor-pointer ml-2 select-none border rounded-md px-3 py-2 bg-white dark:bg-slate-900 border-dashed border-gray-200">
+                                <input 
+                                   type="checkbox" 
+                                   checked={filters.amount_mode === 'absolute'}
+                                   onChange={(e) => setFilters(prev => ({ ...prev, amount_mode: e.target.checked ? 'absolute' : 'signed' }))}
+                                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className={filters.amount_mode === 'absolute' ? "font-semibold text-blue-600" : "text-gray-500"}>Absolute (ABS)</span>
+                            </label>
+                       </div>
+                  </div>
+
+                  {/* Row 2: Taxonomies */}
+                  <div className="col-span-1 md:col-span-2 space-y-2">
                       <Label className="text-xs text-gray-500">Entities</Label>
-                      <div className="flex flex-col lg:flex-row gap-2">
+                      <div className="grid grid-cols-3 gap-2">
                           <MultiSelectModal
                               title="Bank"
                               options={filterOptions?.banks || []}
                               selected={filters.bank}
                               onChange={(val) => setFilters(prev => ({ ...prev, bank: val }))}
-                              className="bg-white dark:bg-slate-900"
+                              className="bg-white dark:bg-slate-900 flex-1 min-w-[110px]"
                           />
                           <MultiSelectModal
                               title="Account"
                               options={filterOptions?.accounts || []}
                               selected={filters.account}
                               onChange={(val) => setFilters(prev => ({ ...prev, account: val }))}
-                              className="bg-white dark:bg-slate-900"
+                              className="bg-white dark:bg-slate-900 flex-1 min-w-[110px]"
                           />
                           <MultiSelectModal
-                              title="Transaction Type"
+                              title="Type"
                               options={filterOptions?.types || []}
                               selected={filters.type}
                               onChange={(val) => setFilters(prev => ({ ...prev, type: val }))}
-                              className="bg-white dark:bg-slate-900"
+                              className="bg-white dark:bg-slate-900 flex-1 min-w-[110px]"
                           />
                       </div>
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="col-span-1 md:col-span-2 space-y-2">
                       <Label className="text-xs text-gray-500">Categories</Label>
                       <MultiSelectModal
-                          title="Categories..."
+                          title="Select Categories..."
                           options={filterOptions?.categories || []}
                           selected={filters.category}
                           onChange={(val) => setFilters(prev => ({ ...prev, category: val }))}
                           className="bg-white dark:bg-slate-900"
                       />
                   </div>
-
-                  <div className="col-span-1 sm:col-span-2 xl:col-span-4 flex items-center gap-4 pt-2">
-                       <label className="flex items-center gap-2 text-sm cursor-pointer">
-                           <input 
-                            type="checkbox" 
-                            checked={filters.match_case}
-                            onChange={(e) => setFilters(prev => ({...prev, match_case: e.target.checked}))}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                           />
-                           Match Case
-                       </label>
-                       <label className="flex items-center gap-2 text-sm cursor-pointer">
-                           <input 
-                            type="checkbox" 
-                            checked={filters.use_regex}
-                            onChange={(e) => setFilters(prev => ({...prev, use_regex: e.target.checked}))}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                           />
-                           Regex
-                       </label>
-                       <div className="flex-1" />
+                  
+                  <div className="col-span-1 md:col-span-4 flex justify-end">
                        <Button variant="ghost" size="sm" onClick={clearFilters} className="text-red-500 hover:text-red-700 hover:bg-red-50">
-                           Clear All
+                           Clear All Filters
                        </Button>
                   </div>
               </div>

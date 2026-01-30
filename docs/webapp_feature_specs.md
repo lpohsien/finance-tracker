@@ -47,7 +47,6 @@ Add functionality in the settings page to allow users to delete their account.
         - Delete all user data from the database.
     - **On Cancel/Close**: Abort deletion.
 
-TODO:
 **Task: More functionalities for advanced filtering**
 1. Add an amount filter to the Analysis tab allowing users to filter transactions by a specific value.
 2. Add shortcut toggle buttons for user to select common date ranges i.e. "Today", "This week", "This Month" and "This Year".
