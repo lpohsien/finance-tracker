@@ -58,6 +58,10 @@ sudo apt-get update
 
 # Install Docker:
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# Allow running docker without sudo
+sudo usermod -aG docker $USER
+newgrp docker
 ```
 
 ### 2. Prepare Project
@@ -85,34 +89,69 @@ DOMAIN_NAME=
 
 ---
 
-## Step 4: HTTPS Setup (First Run)
+## Automated Setup Script
 
-Because Nginx needs the certificates to start, but Certbot needs Nginx to verify the domain, we need a 2-step initialization.
+We have provided a script to automate Steps 3 and 4. After creating your VM and setting up DNS (Steps 1 & 2):
 
-### 1. Request the Initial Certificate
-We'll use a temporary certbot command to get the first certificate.
+1. **SSH into your GCE VM**.
+2. **Clone the repo**:
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/finance-tracker.git
+   cd finance-tracker
+   ```
+3. **Run the deployment script**:
+   ```bash
+   # Make executable
+   chmod +x scripts/deploy_gce.sh
+   
+   # Run
+   ./scripts/deploy_gce.sh
+   ```
+
+The script will:
+- Install Docker (`docker.io`) and `docker-compose`.
+- Create the `.env` file for you.
+- Handle the temporary Nginx setup.
+- Obtain the SSL certificate.
+- Launch the production application.
+
+---
+
+## Manual Step 4: HTTPS Setup (First Run)
+
+*Skip this section if you ran the automated script above.*
+
+Since Nginx is configured to use SSL certificates that don't exist yet, it will fail to start. We need to start it in a special "init" mode (Port 80 only) first to get the certificates.
+
+### 1. Start Nginx in Init Mode
+We use a helper compose file (`docker-compose.init.yml`) to override the Nginx configuration temporarily.
 
 ```bash
-# 1. Start Nginx temporarily to handle the ACME challenge
-# We use the prod config which handles the challenge in port 80
-docker-compose -f docker-compose.prod.yml up -d nginx
+docker-compose -f docker-compose.prod.yml -f docker-compose.init.yml up -d nginx
+```
 
-# 2. Run Certbot to get the certificate
+### 2. Request the Certificate
+Now that Nginx is running on port 80, we can run Certbot.
+
+```bash
 # Replace email and domain with yours
-sudo docker-compose -f docker-compose.prod.yml run --rm certbot certonly --webroot --webroot-path /var/www/certbot -d your-domain.desec.io --email your-email@example.com --agree-tos --no-eff-email
+docker-compose -f docker-compose.prod.yml run --rm --entrypoint "certbot" certbot certonly --webroot --webroot-path /var/www/certbot -d your-domain.desec.io --email your-email@example.com --agree-tos --no-eff-email
 ```
 
 *If the above succeeds, you will see a "Congratulations" message.*
 
-### 2. Start the Full Application
-Now that certificates exist, restart everything.
+### 3. Start the Full Application
+Now that certificates exist, we can stop the "init" mode and start the full production application (which includes HTTPS).
 
 ```bash
-docker compose -f docker-compose.prod.yml down
-docker compose -f docker-compose.prod.yml up -d
+# Stop the init containers
+docker-compose -f docker-compose.prod.yml down
+
+# Start the full production stack
+docker-compose -f docker-compose.prod.yml up -d
 ```
 
-Your app should now be live at `https://your-domain.desec.io`!
+Your app should now be live at `https://lithium11100.de.io`!
 
 ---
 

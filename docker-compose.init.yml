@@ -1,0 +1,7 @@
+version: '3.8'
+
+services:
+  nginx:
+    volumes:
+      # Override the default template with the init template (No SSL)
+      - ./nginx/nginx.init.conf.template:/etc/nginx/templates/default.conf.template
