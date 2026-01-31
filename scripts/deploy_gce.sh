@@ -79,23 +79,28 @@ fi
 if [ -z "$EMAIL" ]; then
     EMAIL=$(grep LETSENCRYPT_EMAIL .env | cut -d '=' -f2)
 fi
+if [ -z "$DESEC_TOKEN" ]; then
+    DESEC_TOKEN=$(grep DESEC_TOKEN .env | cut -d '=' -f2)
+fi
 
-# 3. HTTPS Init
-echo -e "${GREEN}Step 3: Initializing Certificate (Port 80 Mode)...${NC}"
+# 3. Setup Certbot Credentials
+echo -e "${GREEN}Step 3: Configuring deSEC DNS Challenge...${NC}"
+mkdir -p certbot/secrets
+cat << EOF > certbot/secrets/desec.ini
+dns_desec_token = $DESEC_TOKEN
+EOF
+chmod 600 certbot/secrets/desec.ini
 
-# Stop any running containers
-sudo docker-compose -f docker-compose.prod.yml down
+# 4. Request Certificate (DNS Mode)
+echo -e "${GREEN}Requesting Certificate via DNS Challenge (No Nginx required yet)...${NC}"
 
-# Start Nginx in Init Mode
-sudo docker-compose -f docker-compose.prod.yml -f docker-compose.init.yml up -d nginx
+# Rebuild certbot image to include the plugin
+sudo docker-compose -f docker-compose.prod.yml build certbot
 
-echo "Waiting for Nginx to start..."
-sleep 5
-
-# Run Certbot
-echo -e "${GREEN}Requesting Certificate from Let's Encrypt...${NC}"
 sudo docker-compose -f docker-compose.prod.yml run --rm --entrypoint "certbot" certbot certonly \
-    --webroot --webroot-path /var/www/certbot \
+    --authenticator dns-desec \
+    --dns-desec-credentials /etc/letsencrypt/secrets/desec.ini \
+    --dns-desec-propagation-seconds 60 \
     -d "$DOMAIN_NAME" \
     --email "$EMAIL" \
     --agree-tos --no-eff-email
@@ -103,12 +108,12 @@ sudo docker-compose -f docker-compose.prod.yml run --rm --entrypoint "certbot" c
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}Certificate obtained successfully!${NC}"
 else
-    echo -e "${RED}Certbot failed. Please check the logs and your domain settings.${NC}"
+    echo -e "${RED}Certbot failed. Please check the logs and your token.${NC}"
     exit 1
 fi
 
-# 4. Start Production
-echo -e "${GREEN}Step 4: Starting Production Stack...${NC}"
+# 5. Start Production
+echo -e "${GREEN}Step 5: Starting Production Stack...${NC}"
 sudo docker-compose -f docker-compose.prod.yml down
 sudo docker-compose -f docker-compose.prod.yml up -d
 

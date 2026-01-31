@@ -117,37 +117,48 @@ The script will:
 
 ---
 
-## Manual Step 4: HTTPS Setup (First Run)
+## Manual Step 4: HTTPS Setup (DNS Validation)
 
 *Skip this section if you ran the automated script above.*
 
-Since Nginx is configured to use SSL certificates that don't exist yet, it will fail to start. We need to start it in a special "init" mode (Port 80 only) first to get the certificates.
+We use the `certbot-dns-desec` plugin to validate domain ownership via the DNS API. This is more robust than the webroot method and doesn't require Nginx to be running during validation.
 
-### 1. Start Nginx in Init Mode
-We use a helper compose file (`docker-compose.init.yml`) to override the Nginx configuration temporarily.
+### 1. Create Credentials File
+Create a secrets file so Certbot can access your deSEC account.
 
 ```bash
-docker-compose -f docker-compose.prod.yml -f docker-compose.init.yml up -d nginx
+mkdir -p certbot/secrets
+echo "dns_desec_token = YOUR_DESEC_TOKEN_HERE" > certbot/secrets/desec.ini
+chmod 600 certbot/secrets/desec.ini
 ```
 
 ### 2. Request the Certificate
-Now that Nginx is running on port 80, we can run Certbot.
+Run Certbot using the custom Docker image (which includes the plugin).
 
 ```bash
-# Replace email and domain with yours
-docker-compose -f docker-compose.prod.yml run --rm --entrypoint "certbot" certbot certonly --webroot --webroot-path /var/www/certbot -d your-domain.desec.io --email your-email@example.com --agree-tos --no-eff-email
+# Build the certbot image with the plugin
+docker-compose -f docker-compose.prod.yml build certbot
+
+# Run the request
+docker-compose -f docker-compose.prod.yml run --rm --entrypoint "certbot" certbot certonly \
+  --authenticator dns-desec \
+  --dns-desec-credentials /etc/letsencrypt/secrets/desec.ini \
+  --dns-desec-propagation-seconds 60 \
+  -d your-domain.desec.io \
+  --email your-email@example.com \
+  --agree-tos --no-eff-email
 ```
 
-*If the above succeeds, you will see a "Congratulations" message.*
+*If successful, you will see a "Congratulations" message.*
 
-### 3. Start the Full Application
-Now that certificates exist, we can stop the "init" mode and start the full production application (which includes HTTPS).
+### 3. Start the Application
+Now start the full stack.
 
 ```bash
-# Stop the init containers
-docker-compose -f docker-compose.prod.yml down
+docker-compose -f docker-compose.prod.yml up -d
+```
 
-# Start the full production stack
+Your app will be live at `https://your-domain.desec.io`.
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
