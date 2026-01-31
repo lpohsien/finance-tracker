@@ -32,12 +32,19 @@ A modern, full-stack finance tracker application featuring a React frontend, Fas
    SECRET_KEY=your_secret_key
    ENCRYPTION_KEY=your_fernet_key # Generate via python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
    ```
-3. **Run**:
+3. **HTTPS Setup**:
+   The application requires HTTPS in Docker. You must generate certificates before running.
    ```bash
-   docker-compose up --build
+   mkdir -p certs
+   openssl req -x509 -newkey rsa:4096 -keyout certs/key.pem -out certs/cert.pem -days 365 -nodes -subj '/CN=localhost'
    ```
-   - Web App: `http://localhost:5173` (Dev) or `http://localhost:8000` (Prod build via backend)
-   - API Docs: `http://localhost:8000/docs`
+
+4. **Run**:
+   ```bash
+   docker-compose up --build -d
+   ```
+   - Web App: `https://localhost` (Accept the self-signed certificate warning)
+   - API Docs: `https://localhost/docs`
 
 ## Local Development
 
