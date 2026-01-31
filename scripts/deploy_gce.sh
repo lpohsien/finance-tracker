@@ -96,17 +96,41 @@ dns_desec_token = $DESEC_TOKEN
 EOF
 chmod 600 certbot/secrets/desec.ini
 
-# 4. Request Certificate (DNS Mode)
-echo -e "${GREEN}Requesting Certificate via DNS Challenge (No Nginx required yet)...${NC}"
+# 4. Update DNS IP (DynDNS)
+echo -e "${GREEN}Step 4: Updating DNS IP Address...${NC}"
+# Use the Token header method to avoid exposing credentials in process list if possible, or basic auth.
+# basic auth: curl --user <domain>:<token> https://update.dedyn.io/
+# token auth: curl https://update.dedyn.io/?hostname=<domain> --header "Authorization: Token <token>"
+# We will use Basic Auth as it is the most robust across curl versions for this API.
+
+# Check if we have curl
+if ! command -v curl &> /dev/null; then
+    echo "curl not found. Installing..."
+    sudo apt-get install -y curl
+fi
+
+echo "Updating IP for $DOMAIN_NAME..."
+HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --user "$DOMAIN_NAME:$DESEC_TOKEN" "https://update.dedyn.io/")
+
+if [ "$HTTP_STATUS" -eq 200 ]; then
+    echo -e "${GREEN}DNS IP updated successfully.${NC}"
+else
+    echo -e "${RED}Failed to update DNS IP. HTTP Status: $HTTP_STATUS${NC}"
+    echo -e "${RED}Check your DOMAIN_NAME and DESEC_TOKEN.${NC}"
+    # Continue anyway, as the IP might already be correct
+fi
+
+# 5. Request Certificate (DNS Mode)
+echo -e "${GREEN}Step 5: Requesting Certificate via DNS Challenge (No Nginx required yet)...${NC}"
 
 # Rebuild certbot image to include the plugin
 sudo docker-compose -f docker-compose.prod.yml build certbot
 
-# Add --dns-desec-propagation-seconds to 120 and try certonly
+# Add --dns-desec-propagation-seconds to 180 and try certonly
 sudo docker-compose -f docker-compose.prod.yml run --rm --entrypoint "certbot" certbot certonly \
     --authenticator dns-desec \
     --dns-desec-credentials /etc/letsencrypt/secrets/desec.ini \
-    --dns-desec-propagation-seconds 120 \
+    --dns-desec-propagation-seconds 180 \
     -d "$DOMAIN_NAME" \
     --email "$EMAIL" \
     --agree-tos --no-eff-email
@@ -121,8 +145,8 @@ else
     exit 1
 fi
 
-# 5. Start Production
-echo -e "${GREEN}Step 5: Starting Production Stack...${NC}"
+# 6. Start Production
+echo -e "${GREEN}Step 6: Starting Production Stack...${NC}"
 sudo docker-compose -f docker-compose.prod.yml down
 sudo docker-compose -f docker-compose.prod.yml up -d
 
