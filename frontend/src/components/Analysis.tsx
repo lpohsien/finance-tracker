@@ -226,8 +226,7 @@ export default function Analysis() {
   const activeFilterCount = Object.entries(filters).filter(([k, v]) => {
       if (k === 'match_case' || k === 'use_regex') return false;
       if (k === 'amount_operator' || k === 'amount_mode') return false;
-      if (k === 'start_date' && v === defaultStart) return false;
-      if (k === 'end_date' && v === defaultEnd) return false;
+      // Treat dates as active filters as long as they are not empty (e.g. "All Time")
       if (Array.isArray(v)) return v.length > 0;
       return !!v;
   }).length;

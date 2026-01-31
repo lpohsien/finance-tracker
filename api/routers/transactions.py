@@ -259,21 +259,6 @@ async def export_transactions(
 ):
     with SessionLocal() as db:
         query = db.query(DBTransaction).filter(DBTransaction.user_id == current_user.id)
-        
-        has_filter = any([
-            start_date, end_date, 
-            categories, accounts, types, banks, search,
-            amount_value
-        ])
-        
-        # Consistent with View: if no filter, default to current month?
-        # Specification says "export transactions in the transactions view". 
-        # View defaults to current month. So yes.
-        # UPDATE: If export_all is True, disregard default date filter
-        if not has_filter and not export_all:
-            today = datetime.now()
-            start_date = today.replace(day=1).strftime('%Y-%m-%d')
-            end_date = today.strftime('%Y-%m-%d')
             
         query = apply_filters(
             query, start_date, end_date,
@@ -369,20 +354,9 @@ async def list_transactions(
     amount_mode: Optional[str] = Query('signed'), 
     current_user: User = Depends(get_current_user)
 ):
-    # Default to current month if no filtering provided at all
-    has_filter = any([
-        start_date, end_date, 
-        categories, accounts, types, banks, search,
-        amount_value
-    ])
     
     with SessionLocal() as db:
         query = db.query(DBTransaction).filter(DBTransaction.user_id == current_user.id)
-        
-        if not has_filter:
-            today = datetime.now()
-            start_date = today.replace(day=1).strftime('%Y-%m-%d')
-            end_date = today.strftime('%Y-%m-%d')
 
         query = apply_filters(
             query, start_date, end_date,
