@@ -46,6 +46,10 @@ A modern, full-stack finance tracker application featuring a React frontend, Fas
    - Web App: `https://localhost` (Accept the self-signed certificate warning)
    - API Docs: `https://localhost/docs`
 
+## Deployment
+
+For full deployment instructions (Google Compute Engine + deSEC + HTTPS), see [docs/deployment_gce_desec.md](docs/deployment_gce_desec.md).
+
 ## Local Development
 
 ### Backend
