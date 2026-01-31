@@ -431,7 +431,7 @@ export default function Analysis() {
                 </div>
                 <div className="flex items-center space-x-3 shrink-0">
                   <div className="text-right">
-                      <p className={`font-bold text-sm ${t.amount < 0 ? 'text-slate-900 dark:text-slate-100' : 'text-green-600'}`}>
+                      <p className={`font-bold text-sm ${t.amount < 0 ? 'text-red-500 dark:text-red-400' : 'text-green-600'}`}>
                         {t.amount > 0 ? '+' : ''}{t.amount.toFixed(2)}
                       </p>
                       <p className="text-[10px] text-gray-400">{t.account}</p>
