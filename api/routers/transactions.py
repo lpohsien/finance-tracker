@@ -137,11 +137,15 @@ async def parse_transaction(
 
     storage.save_transaction(transaction_data, current_user)
     
-    # Construct full path assuming default vite port 5173
+    # Construct full path
     hostname = request.url.hostname or "localhost"
-    port = request.url.port or 8000
+    port = request.url.port
     scheme = request.url.scheme or "http"
-    full_path = f"{scheme}://{hostname}:{port}/transactions/{transaction_data.id}"
+    
+    if port:
+        full_path = f"{scheme}://{hostname}:{port}/transactions/{transaction_data.id}"
+    else:
+        full_path = f"{scheme}://{hostname}/transactions/{transaction_data.id}"
 
     # Prepare response
     resp = TransactionResponse(
@@ -318,7 +322,7 @@ async def get_transaction(
     transaction_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    tx = storage.get_transaction(transaction_id, current_user.telegram_id)
+    tx = storage.get_transaction(transaction_id, current_user)
     if not tx:
         raise HTTPException(status_code=404, detail="Transaction not found")
         
