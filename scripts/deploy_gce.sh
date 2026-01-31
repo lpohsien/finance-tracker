@@ -102,10 +102,11 @@ echo -e "${GREEN}Requesting Certificate via DNS Challenge (No Nginx required yet
 # Rebuild certbot image to include the plugin
 sudo docker-compose -f docker-compose.prod.yml build certbot
 
+# Add --dns-desec-propagation-seconds to 120 and try certonly
 sudo docker-compose -f docker-compose.prod.yml run --rm --entrypoint "certbot" certbot certonly \
     --authenticator dns-desec \
     --dns-desec-credentials /etc/letsencrypt/secrets/desec.ini \
-    --dns-desec-propagation-seconds 60 \
+    --dns-desec-propagation-seconds 120 \
     -d "$DOMAIN_NAME" \
     --email "$EMAIL" \
     --agree-tos --no-eff-email
@@ -114,6 +115,9 @@ if [ $? -eq 0 ]; then
     echo -e "${GREEN}Certificate obtained successfully!${NC}"
 else
     echo -e "${RED}Certbot failed. Please check the logs and your token.${NC}"
+    echo -e "${RED}Possible Issue: NXDOMAIN looking up TXT for _acme-challenge.${DOMAIN_NAME}${NC}"
+    echo -e "${RED}Solution: Ensure your domain '${DOMAIN_NAME}' is correctly registered in deSEC and your local machine or GCE instance can resolve it.${NC}"
+    echo -e "${RED}Try running: 'nslookup ${DOMAIN_NAME}' or 'host -t NS ${DOMAIN_NAME}' to verify DNS.${NC}"
     exit 1
 fi
 
