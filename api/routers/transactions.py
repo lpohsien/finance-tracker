@@ -228,6 +228,8 @@ async def update_transaction(
         tx.bank = update_data.bank
     if update_data.status is not None:
         tx.status = update_data.status
+    if update_data.account is not None:
+        tx.account = update_data.account
         
     storage.save_transaction(tx, current_user)
     

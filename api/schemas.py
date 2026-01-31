@@ -41,6 +41,7 @@ class TransactionUpdate(BaseModel):
     timestamp: Optional[str] = None
     bank: Optional[str] = None
     status: Optional[str] = None
+    account: Optional[str] = None
 
 class BudgetSetRequest(BaseModel):
     category: str

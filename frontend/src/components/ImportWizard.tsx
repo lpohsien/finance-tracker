@@ -28,6 +28,7 @@ export function ImportWizard({ onClose, open }: ImportWizardProps) {
       setResult(null);
       setErrorCSV(null);
       setIsRetrying(false);
+      importMutation.reset();
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
