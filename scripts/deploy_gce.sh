@@ -1,12 +1,17 @@
 #!/bin/bash
 set -e
 
+# Ensure we are running from the project root
+cd "$(dirname "$0")/.."
+PROJECT_ROOT=$(pwd)
+
 # Colors for output
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 echo -e "${GREEN}Starting Finance Tracker Deployment Setup...${NC}"
+echo -e "Project Root: $PROJECT_ROOT"
 
 # 1. Install Docker & Docker Compose
 echo -e "${GREEN}Step 1: Checking/Installing Docker...${NC}"
