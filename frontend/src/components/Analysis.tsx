@@ -189,7 +189,12 @@ export default function Analysis() {
   };
 
   // Date Shortcuts
-  const setDateRange = (type: 'today' | 'week' | 'month' | 'year') => {
+  const setDateRange = (type: 'today' | 'week' | 'month' | 'year' | 'all') => {
+      if (type === 'all') {
+        setFilters(prev => ({ ...prev, start_date: '', end_date: '' }));
+        return;
+      }
+
       const today = new Date();
       const format = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       
@@ -311,9 +316,10 @@ export default function Analysis() {
                        </div>
                        <div className="flex flex-wrap gap-2 mt-2">
                             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setDateRange('today')}>Today</Button>
-                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setDateRange('week')}>This Week</Button>
-                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setDateRange('month')}>This Month</Button>
-                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setDateRange('year')}>This Year</Button>
+                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setDateRange('week')}>Week</Button>
+                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setDateRange('month')}>Month</Button>
+                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setDateRange('year')}>Year</Button>
+                            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setDateRange('all')}>All Time</Button>
                        </div>
                   </div>
 
@@ -378,7 +384,7 @@ export default function Analysis() {
                   <div className="space-y-2 w-full xl:w-[calc(50%-0.5rem)]">
                       <Label className="text-xs text-gray-500">Categories</Label>
                       <MultiSelectModal
-                          title="Select Categories..."
+                          title="Categories..."
                           options={filterOptions?.categories || []}
                           selected={filters.category}
                           onChange={(val) => setFilters(prev => ({ ...prev, category: val }))}
