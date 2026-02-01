@@ -278,10 +278,8 @@ class TestDashboardNavigation:
         """Test navigating to transactions tab."""
         page = authenticated_page
         
-        # Find and click transactions tab
-        transactions_nav = page.locator(
-            '[data-value="transactions"], text=Transactions, text=Analysis'
-        )
+        # Find and click transactions tab using text locator
+        transactions_nav = page.get_by_text("Transactions").or_(page.get_by_text("Analysis"))
         if transactions_nav.count() > 0:
             transactions_nav.first.click()
             page.wait_for_timeout(500)
@@ -293,8 +291,8 @@ class TestDashboardNavigation:
         """Test navigating to settings tab."""
         page = authenticated_page
         
-        # Find and click settings tab
-        settings_nav = page.locator('[data-value="settings"], text=Settings')
+        # Find and click settings tab using text locator
+        settings_nav = page.get_by_text("Settings")
         if settings_nav.count() > 0:
             settings_nav.first.click()
             page.wait_for_timeout(500)

@@ -32,7 +32,7 @@ services:
     environment:
       - VITE_API_URL=http://backend:8000
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:3000/"]
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/"]
       interval: 5s
       timeout: 10s
       retries: 10
@@ -59,9 +59,5 @@ services:
     volumes:
       - ./tests:/app/tests
       - ./data:/app/data
-    command: >
-      pytest -v --tb=short
-      tests/integration/
-      tests/e2e/
-      --ignore=tests/unit/
+    command: ["-v", "--tb=short", "tests/integration/", "tests/e2e/", "--ignore=tests/unit/"]
     restart: "no"

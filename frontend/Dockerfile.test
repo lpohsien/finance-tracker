@@ -1,13 +1,13 @@
 # Frontend Dockerfile for Testing - Serves built assets via nginx
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install all dependencies (including devDependencies for build)
+RUN npm install --legacy-peer-deps
 
 # Copy source
 COPY . .
@@ -22,16 +22,19 @@ FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy nginx config for SPA routing
+# Use Docker's internal DNS resolver and use variable for upstream
 RUN echo 'server { \
     listen 3000; \
     server_name localhost; \
     root /usr/share/nginx/html; \
     index index.html; \
+    resolver 127.0.0.11 valid=30s ipv6=off; \
     location / { \
         try_files $uri $uri/ /index.html; \
     } \
     location /api { \
-        proxy_pass http://backend:8000; \
+        set $backend_upstream http://backend:8000; \
+        proxy_pass $backend_upstream; \
         proxy_set_header Host $host; \
         proxy_set_header X-Real-IP $remote_addr; \
     } \
