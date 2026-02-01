@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=sqlite:///./data/test_db.sqlite
+      - SECRET_KEY=test_secret_key_for_testing_only
+      - ENCRYPTION_KEY=test_encryption_key_32_characters!
+      - CORS_ORIGINS=http://localhost:3000,http://frontend:3000
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: "no"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.test
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      - VITE_API_URL=http://backend:8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 5s
+      timeout: 10s
+      retries: 10
+      start_period: 10s
+    restart: "no"
+
+  test_runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    environment:
+      - API_BASE_URL=http://backend:8000
+      - FRONTEND_URL=http://frontend:3000
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - SKIP_LLM=${SKIP_LLM:-true}
+      - SKIP_EXTERNAL_API=${SKIP_EXTERNAL_API:-true}
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./tests:/app/tests
+      - ./data:/app/data
+    command: >
+      pytest -v --tb=short
+      tests/integration/
+      tests/e2e/
+      --ignore=tests/unit/
+    restart: "no"

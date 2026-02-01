@@ -98,3 +98,61 @@ To migrate legacy CSV data to the new SQLite database:
        "remarks": "Optional"
      }
      ```
+
+## Running Tests
+
+The test suite includes unit tests, integration tests, and end-to-end (E2E) tests.
+
+### Dockerized Test Suite (Recommended)
+
+Run the complete test suite in an isolated Docker environment:
+
+```bash
+docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
+```
+
+This will:
+1. Build and start the backend API with a test database
+2. Build and start the frontend in production mode
+3. Run all integration and E2E tests
+4. Clean up test users automatically
+
+### Test Options
+
+Control test behavior via environment variables:
+
+```bash
+# Skip all LLM API calls (use mocks)
+SKIP_LLM=true docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
+
+# Skip all external API calls (LLM and Telegram)
+SKIP_EXTERNAL_API=true docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
+
+# Enable real LLM calls (limited to 3 per session)
+SKIP_LLM=false GOOGLE_API_KEY=your_key docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
+```
+
+### Local Development Tests
+
+For running unit tests locally without Docker:
+
+```bash
+# Install test dependencies
+uv pip install -e .[backend,test]
+
+# Run unit tests only
+pytest tests/unit/ -v
+
+# Run specific test file
+pytest tests/unit/test_parser.py -v
+```
+
+### Test Structure
+
+- `tests/unit/` - Pure logic tests (no network/database)
+- `tests/integration/` - API-level tests against the backend
+- `tests/e2e/` - Playwright browser tests for user journeys
+
+### Debug Data
+
+If tests fail, debug data is automatically exported to `./data/debug_<timestamp>.json` before test user cleanup.
