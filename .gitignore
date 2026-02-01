@@ -9,4 +9,3 @@ uv.lock
 *.log
 .DS_Store
 certs/*
-certbot/
