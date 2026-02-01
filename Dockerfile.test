@@ -1,0 +1,44 @@
+# Dockerfile for Test Runner
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# Install system dependencies including curl for healthchecks
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv for Python package management
+RUN pip install uv
+
+# Copy project files for dependency installation
+COPY pyproject.toml ./
+
+# Install base dependencies + backend dependencies
+RUN uv pip install --system --no-cache -e .[backend]
+
+# Install test dependencies
+RUN uv pip install --system --no-cache \
+    httpx \
+    pytest-asyncio \
+    pytest-playwright \
+    faker \
+    respx
+
+# Install Playwright browsers
+RUN playwright install --with-deps chromium
+
+# Copy source code
+COPY api/ ./api/
+COPY src/ ./src/
+COPY tests/ ./tests/
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Default entrypoint runs pytest
+ENTRYPOINT ["pytest"]
+CMD ["-v", "--tb=short", "tests/"]

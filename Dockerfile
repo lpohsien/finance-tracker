@@ -1,8 +1,8 @@
 # Stage 1: Build Frontend
-FROM node:20-alpine as frontend-build
+FROM node:20-slim as frontend-build
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
-RUN npm ci
+RUN npm install --legacy-peer-deps
 COPY frontend/ ./
 RUN npm run build
 
