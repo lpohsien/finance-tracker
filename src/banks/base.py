@@ -5,18 +5,13 @@ from dateutil import tz
 from dateutil import parser as date_parser
 import uuid
 from src.models import TransactionData
+from src.config import TRANSACTION_TYPES
 
 class BaseBankParser(ABC):
 
     TIME_PARSE_WARNING = "TIME_PARSE_WARNING"
 
-
-    transaction_types = [
-        "Transfer",
-        "Card",
-        "PayNow",
-        "NETS QR",
-    ]
+    transaction_types = TRANSACTION_TYPES
 
     @abstractmethod
     def rule_parse(self, text: str) -> Optional[TransactionData]:
@@ -26,13 +21,13 @@ class BaseBankParser(ABC):
         """
         pass
 
-    def llm_parse(self, text: str) -> Tuple[Optional[TransactionData], Optional[str]]:
+    def llm_parse(self, text: str, api_key: Optional[str] = None) -> Tuple[Optional[TransactionData], Optional[str]]:
         """
         Placeholder for LLM-based parsing method.
         This can be implemented in subclasses if needed.
         """
         from src.llm_helper import llm_parse_bank_message
-        parsed_dict, error = llm_parse_bank_message(text, self.transaction_types)
+        parsed_dict, error = llm_parse_bank_message(text, self.transaction_types, api_key=api_key)
 
         # transaction id
         transaction_id = str(uuid.uuid5(uuid.NAMESPACE_OID, f"{datetime.now()}|{text}"))

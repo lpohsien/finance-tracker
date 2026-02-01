@@ -9,5 +9,3 @@ uv.lock
 *.log
 .DS_Store
 certs/*
-frontend/node_modules/
-frontend/dist/
