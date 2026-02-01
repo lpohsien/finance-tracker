@@ -9,7 +9,7 @@ Tests:
 
 import pytest
 import httpx
-from datetime import datetime, timedelta
+from datetime import datetime
 
 
 pytestmark = pytest.mark.integration

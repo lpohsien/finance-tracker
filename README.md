@@ -105,7 +105,7 @@ The test suite includes unit tests, integration tests, and end-to-end (E2E) test
 
 ### Dockerized Test Suite (Recommended)
 
-Run the complete test suite in an isolated Docker environment:
+Run the integration and E2E test suite in an isolated Docker environment:
 
 ```bash
 docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
@@ -116,6 +116,8 @@ This will:
 2. Build and start the frontend in production mode
 3. Run all integration and E2E tests
 4. Clean up test users automatically
+
+**Note:** Unit tests are run separately using `pytest tests/unit/ -v` as they don't require Docker services.
 
 ### Test Options
 

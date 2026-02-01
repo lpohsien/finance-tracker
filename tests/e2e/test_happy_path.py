@@ -172,7 +172,6 @@ class TestHappyPath:
                     headers=auth_headers,
                 )
                 assert tx_response.status_code == 200
-                tx_id = tx_response.json()["id"]
             
             # Step 4: Refresh and verify transaction appears
             page.reload()
@@ -228,8 +227,9 @@ class TestLoginValidation:
         
         # Error message should be visible
         error_element = page.locator("text=Incorrect username or password")
-        # Either visible or the login page should still be showing
-        # (not redirected to dashboard)
+        expect(error_element).to_be_visible()
+        
+        # Should still be on login page (not redirected to dashboard)
         expect(page).to_have_url(re.compile(r"/login"))
 
 
