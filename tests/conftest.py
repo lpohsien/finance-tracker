@@ -71,10 +71,11 @@ class LLMMockResponse:
     """
     Configurable mock response for LLM calls.
     
-    Supports three modes:
+    Supports four modes:
     - 'valid': Returns correct structure with expected values
     - 'wrong_value': Returns correct structure but wrong values
-    - 'invalid': Returns malformed/incorrect structure
+    - 'invalid': Returns error responses
+    - 'malformed': Returns malformed/unparseable responses
     """
     
     # Default responses for categorization
