@@ -13,7 +13,6 @@ services:
       - DATABASE_URL=sqlite:///./data/finance.db
       - SECRET_KEY=${SECRET_KEY}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
-      # Update CORS for your domain
       - CORS_ORIGINS=https://${DOMAIN_NAME}
     volumes:
       - ./data:/app/data
