@@ -116,12 +116,12 @@ export default function Transactions() {
         <div className="md:hidden space-y-3">
             {transactions.map((t: any) => (
                 <div key={t.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-2">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <div className="font-semibold text-gray-900">{t.description || "No Description"}</div>
+                    <div className="flex justify-between items-start gap-3">
+                        <div className="min-w-0 flex-1 overflow-hidden">
+                            <div className="font-semibold text-gray-900 truncate" title={t.description || "No Description"}>{t.description || "No Description"}</div>
                             <div className="text-xs text-gray-500 mt-0.5">{t.bank} • {t.category}</div>
                         </div>
-                        <div className={`font-bold ${t.amount < 0 ? 'text-gray-900' : 'text-green-600'}`}>
+                        <div className={`font-bold shrink-0 ${t.amount < 0 ? 'text-gray-900' : 'text-green-600'}`}>
                             {t.amount < 0 ? `- $${Math.abs(t.amount).toFixed(2)}` : `+ $${t.amount.toFixed(2)}`}
                         </div>
                     </div>
@@ -154,7 +154,11 @@ export default function Transactions() {
                     <tr key={t.id} className="hover:bg-gray-50/50 transition-colors">
                         <td className="px-6 py-4 text-gray-600 font-mono text-xs">{formatDateTime(t.timestamp)}</td>
                         <td className="px-6 py-4 text-gray-900 font-medium">{t.bank}</td>
-                        <td className="px-6 py-4 text-gray-600">{t.description}</td>
+                        <td className="px-6 py-4 text-gray-600">
+                            <div className="max-w-xs xl:max-w-md 2xl:max-w-lg truncate" title={t.description}>
+                                {t.description}
+                            </div>
+                        </td>
                         <td className="px-6 py-4">
                             <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
                                 {t.category}

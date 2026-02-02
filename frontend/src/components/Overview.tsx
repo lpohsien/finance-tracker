@@ -192,8 +192,8 @@ export default function Overview({ onNavigateToTransactions }: OverviewProps) {
                    ['Transport', 'Bus', 'Grab', 'Uber'].includes(t.category) ? '🚌' : 
                    ['Shopping'].includes(t.category) ? '🛍️' : '💸'}
                 </div>
-                <div className="min-w-0">
-                  <p className="font-semibold text-sm truncate dark:text-gray-200">{t.description || t.bank}</p>
+                <div className="min-w-0 flex-1 overflow-hidden">
+                  <p className="font-semibold text-sm truncate dark:text-gray-200" title={t.description || t.bank}>{t.description || t.bank}</p>
                   <p className="text-[10px] text-gray-400 dark:text-gray-500">{new Date(t.timestamp).toLocaleDateString()}</p>
                 </div>
               </div>
