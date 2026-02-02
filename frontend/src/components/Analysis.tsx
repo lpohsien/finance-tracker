@@ -441,7 +441,7 @@ export default function Analysis() {
                         e.stopPropagation();
                         deleteMutation.mutate(t.id);
                     }}
-                    className="p-2 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                    className="p-2 text-gray-300 hover:text-red-500 transition-colors opacity-100 md:opacity-0 md:group-hover:opacity-100"
                   >
                     <Trash2 size={16} />
                   </button>
