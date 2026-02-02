@@ -185,7 +185,7 @@ export default function Overview({ onNavigateToTransactions }: OverviewProps) {
                 className="flex items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-xl shadow-sm border border-gray-50 dark:border-slate-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
                 onClick={() => setSelectedTransaction(t)}
             >
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-3 overflow-hidden flex-1">
                 <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-slate-800 flex items-center justify-center text-xl shrink-0">
                   {/* Simple emoji mapping based on first letter or hardcoded checks if we had a map */}
                   {['Food', 'Lunch', 'Dinner'].includes(t.category) ? '🍱' : 
@@ -197,7 +197,7 @@ export default function Overview({ onNavigateToTransactions }: OverviewProps) {
                   <p className="text-[10px] text-gray-400 dark:text-gray-500">{new Date(t.timestamp).toLocaleDateString()}</p>
                 </div>
               </div>
-              <p className={`font-bold text-sm ${t.amount < 0 ? 'text-red-500 dark:text-red-400' : 'text-green-500 dark:text-green-400'}`}>
+              <p className={`font-bold text-sm whitespace-nowrap shrink-0 ${t.amount < 0 ? 'text-red-500 dark:text-red-400' : 'text-green-500 dark:text-green-400'}`}>
                 {t.amount < 0 ? '-' : '+'}${Math.abs(t.amount).toFixed(2)}
               </p>
             </div>
