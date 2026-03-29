@@ -68,11 +68,7 @@ This repository includes a workflow at `.github/workflows/publish-ghcr.yml` that
 - pushes to `ghcr.io/<owner>/finance-tracker`,
 - and sets the GHCR package visibility to public.
 
-<<<<<<< HEAD
-One-time setup in GitHub repository settings:
-=======
 One-time setup in GitHub repository settings (Optional, recommended if you want to ensure the image is public to void GHCR private repo limits. See implemention in `.github/workflows/publish-ghcr.yml` for details):
->>>>>>> beec2b1 (Modify github action to report image size)
 1. Go to **Settings > Secrets and variables > Actions**.
 2. Add secret `GHCR_ADMIN_TOKEN`.
 3. Use a PAT from the image owner account with package admin capability.
@@ -113,15 +109,9 @@ docker buildx build \
 ### A. Run directly on Pi (pull-and-run)
 
 ```bash
-<<<<<<< HEAD
-cd /opt/finance-tracker
-# Ensure code exists here (git clone or one-time sync)
-./scripts/deploy_pi_tailscale.sh --mode local --image ghcr.io/<owner>/finance-tracker:latest
-=======
 cd ~/finance-tracker
 # Ensure code exists here (git clone or one-time sync)
 ./scripts/deploy_pi_tailscale.sh --mode local --image ghcr.io/lpohsien/finance-tracker:latest
->>>>>>> beec2b1 (Modify github action to report image size)
 ```
 
 ### B. Deploy from laptop to Pi (safe sync)
