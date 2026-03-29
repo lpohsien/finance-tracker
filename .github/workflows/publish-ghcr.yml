@@ -62,8 +62,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-<<<<<<< HEAD
-=======
       - name: Report pushed image sizes
         shell: bash
         run: |
@@ -94,7 +92,6 @@ jobs:
             fi
           done <<< "${{ steps.meta.outputs.tags }}"
 
->>>>>>> beec2b1 (Modify github action to report image size)
       # - name: Verify GHCR admin token is configured
       #   run: |
       #     if [ -z "${{ secrets.GHCR_ADMIN_TOKEN }}" ]; then
