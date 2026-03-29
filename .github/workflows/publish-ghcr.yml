@@ -3,6 +3,16 @@ name: Build and Publish GHCR Image
 on:
   push:
   workflow_dispatch:
+    inputs:
+      image_name:
+        description: Override image name (without registry/owner)
+        required: false
+        default: finance-tracker
+      push_latest:
+        description: Publish the latest tag for this run
+        required: false
+        type: boolean
+        default: true
 
 env:
   IMAGE_NAME: finance-tracker
@@ -35,9 +45,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          images: ghcr.io/${{ github.repository_owner }}/${{ github.event.inputs.image_name || env.IMAGE_NAME }}
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.push_latest == 'true') || (github.event_name != 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)) }}
             type=sha,prefix=sha-
             type=ref,event=branch
             type=ref,event=tag
