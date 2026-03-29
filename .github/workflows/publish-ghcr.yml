@@ -62,6 +62,39 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
+<<<<<<< HEAD
+=======
+      - name: Report pushed image sizes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          report_size() {
+            local image_ref="$1"
+            echo "Inspecting $image_ref"
+            raw_json="$(docker buildx imagetools inspect --raw "$image_ref")"
+            manifest_type="$(echo "$raw_json" | jq -r '.mediaType // empty')"
+
+            if [[ "$manifest_type" == "application/vnd.oci.image.index.v1+json" || "$manifest_type" == "application/vnd.docker.distribution.manifest.list.v2+json" ]]; then
+              total_bytes="$(echo "$raw_json" | jq '[.manifests[].size] | add')"
+              echo "Multi-arch manifest total size (manifest blobs): ${total_bytes} bytes"
+            else
+              total_bytes="$(echo "$raw_json" | jq '.config.size + ([.layers[].size] | add)')"
+              echo "Single-arch image total size (config + layers): ${total_bytes} bytes"
+            fi
+
+            total_mib="$(awk -v b="$total_bytes" 'BEGIN { printf "%.2f", b/1024/1024 }')"
+            echo "Approx size: ${total_mib} MiB"
+            echo
+          }
+
+          while IFS= read -r image_tag; do
+            if [[ -n "$image_tag" ]]; then
+              report_size "$image_tag"
+            fi
+          done <<< "${{ steps.meta.outputs.tags }}"
+
+>>>>>>> beec2b1 (Modify github action to report image size)
       # - name: Verify GHCR admin token is configured
       #   run: |
       #     if [ -z "${{ secrets.GHCR_ADMIN_TOKEN }}" ]; then
