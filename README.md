@@ -50,6 +50,8 @@ A modern, full-stack finance tracker application featuring a React frontend, Fas
 
 For full deployment instructions (Google Compute Engine + deSEC + HTTPS), see [docs/deployment_gce_desec.md](docs/deployment_gce_desec.md).
 
+For Raspberry Pi deployment with Tailscale (no port forwarding), see [docs/deployment_raspberry_pi_tailscale.md](docs/deployment_raspberry_pi_tailscale.md).
+
 ## Local Development
 
 ### Backend

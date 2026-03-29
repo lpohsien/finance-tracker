@@ -1,0 +1,38 @@
+# VCS and editor metadata
+.git
+.gitignore
+.DS_Store
+.vscode
+
+# Secrets and local environment files
+.env
+.env.*
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+
+# Node artifacts
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Runtime/data and local state
+data/
+certs/
+certbot/conf/
+certbot/www/
+certbot/secrets/
+
+# Build/test/docs artifacts not needed by image
+tests/
+docs/
+*.log
