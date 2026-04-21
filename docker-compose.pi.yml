@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   backend:
     # Use a prebuilt image when FINANCE_TRACKER_IMAGE is set.
@@ -16,9 +14,22 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - CORS_ORIGINS=${CORS_ORIGINS:-https://localhost}
+      - PYTHONDONTWRITEBYTECODE=1
+      - TMPDIR=/tmp
     # Bind to localhost only. Tailscale Serve/Funnel should proxy this port.
     ports:
       - "127.0.0.1:8000:8000"
+    # Keep container filesystem read-only to avoid overlay writes on SD card.
+    read_only: true
+    # Put temp files in RAM.
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid
     volumes:
-      - ./data:/app/data
+      - /mnt/usb1/data:/app/data
+    # Keep logs small and rotated to reduce persistent writes.
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
